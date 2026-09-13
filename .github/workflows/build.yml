@@ -188,8 +188,10 @@ jobs:
           # Remove operator double() and operator float() to fix CValue + float ambiguity
           # With only operator int(), CValue + float -> int + float (unambiguous)
           c_before_d = c
-          c = _re.sub(r'[ \t]*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?\{[^}]*\}\n?', '', c)
-          c = _re.sub(r'[ \t]*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?[^;{]*;', '', c)
+          # Match inline definitions: operator double() const { ... }
+          c = re.sub(r'\n\s*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?\{[^}]*\}', '', c)
+          # Match declarations: operator double() const;
+          c = re.sub(r'\n\s*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?[^;{]*;', '', c)
           if c != c_before_d:
               with open(cv, 'w') as f: f.write(c)
               print('Fixed CValue.h - removed operator double/float to fix ambiguity')
