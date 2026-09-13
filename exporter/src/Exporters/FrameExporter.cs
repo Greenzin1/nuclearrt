@@ -33,20 +33,32 @@ public class FrameExporter : BaseExporter
 
 		for (int i = 0; i < GameData.Frames.Count; i++)
 		{
-			Logger.Log($"Exporting frame {i + 1}/{GameData.Frames.Count}...");
 			_exporter.CurrentFrame = i;
+			try
+			{
+				Logger.Log($"Exporting frame {i + 1}/{GameData.Frames.Count}...");
 
-			var frameHeader = frameHeaderTemplate.Replace("{{ FRAME_INDEX }}", i.ToString());
-			var frameCpp = frameCppTemplate.Replace("{{ FRAME_INDEX }}", i.ToString());
+				var frameHeader = frameHeaderTemplate.Replace("{{ FRAME_INDEX }}", i.ToString());
+				var frameCpp = frameCppTemplate.Replace("{{ FRAME_INDEX }}", i.ToString());
 
-			frameCpp = ProcessFrameTemplate(frameCpp, i);
-			frameHeader = ProcessFrameHeader(frameHeader, i);
+				frameCpp = ProcessFrameTemplate(frameCpp, i);
+				frameHeader = ProcessFrameHeader(frameHeader, i);
 
-			// write frame files
-			SaveFile(Path.Combine(OutputPath.FullName, "include", $"GeneratedFrame{i}.h"), frameHeader);
-			SaveFile(Path.Combine(OutputPath.FullName, "source", $"GeneratedFrame{i}.cpp"), frameCpp);
+				// write frame files
+				SaveFile(Path.Combine(OutputPath.FullName, "include", $"GeneratedFrame{i}.h"), frameHeader);
+				SaveFile(Path.Combine(OutputPath.FullName, "source", $"GeneratedFrame{i}.cpp"), frameCpp);
+			}
+			catch (Exception ex)
+			{
+				Logger.Log($"Frame {i} failed: {ex.Message}");
+				// Write minimal stub files so compilation still works
+				var stubHeader = $"#pragma once\n#include \"Frame.h\"\n#include \"ObjectFactory.h\"\nstruct GeneratedFrame{i} : public Frame {{ GeneratedFrame{i}(); }};\n";
+				var stubCpp = $"#include \"GeneratedFrame{i}.h\"\nGeneratedFrame{i}::GeneratedFrame{i}() {{ width=320; height=240; }}\n";
+				SaveFile(Path.Combine(OutputPath.FullName, "include", $"GeneratedFrame{i}.h"), stubHeader);
+				SaveFile(Path.Combine(OutputPath.FullName, "source", $"GeneratedFrame{i}.cpp"), stubCpp);
+			}
 
-			// add to factory
+			// add to factory (always, even if frame failed)
 			frameIncludes += $"#include \"GeneratedFrame{i}.h\"\n";
 			frameCases += $"        case {i}:\n            return std::make_unique<GeneratedFrame{i}>();\n";
 		}
