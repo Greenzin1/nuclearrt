@@ -44,12 +44,20 @@ public class PakBuilder
 		//images
 		foreach (var image in gameData.Images.Items.Values)
 		{
-			var entry = new PakEntry { Path = $"images/{image.Handle}.rgba" };
-			MemoryStream imageStream = WriteCompressedImage(image.bitmap);
-			entry.Size = (uint)imageStream.Length;
-			entry.Data = imageStream.ToArray();
-			imageStream.Close();
-			mainPak.AddEntry(entry);
+			try
+			{
+				if (image.bitmap == null) continue;
+				var entry = new PakEntry { Path = $"images/{image.Handle}.rgba" };
+				MemoryStream imageStream = WriteCompressedImage(image.bitmap);
+				entry.Size = (uint)imageStream.Length;
+				entry.Data = imageStream.ToArray();
+				imageStream.Close();
+				mainPak.AddEntry(entry);
+			}
+			catch
+			{
+				Logger.Log($"Skipping image {image.Handle} (unsupported mode)");
+			}
 		}
 
 		//collision masks
