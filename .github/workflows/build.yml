@@ -170,7 +170,7 @@ jobs:
       - name: Fix generated C++ placeholders
         run: |
           python3 -c "
-          import glob, re
+          import glob, re, os
 
           # Fix CValue.h - add float overloads to fix CValue + float ambiguity
           cv = 'runtime/include/CValue.h'
@@ -189,8 +189,32 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
+          if 'operator&(const CValue' not in c:
+              c = c.replace(
+                  'private:',
+                  '    explicit operator bool() const { return GetIntValue() != 0; }\n\nprivate:')
           with open(cv, 'w') as f: f.write(c)
-          print('Fixed CValue.h - added float overloads')
+          print('Fixed CValue.h - added float overloads + explicit operator bool')
+
+          # Add non-member bitwise operators to CValue.h for generated code
+          bitops = '''
+// Non-member bitwise operators for generated code compatibility
+inline CValue operator&(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() & b.GetIntValue()); }
+inline CValue operator&(const CValue& a, int b) { return CValue(a.GetIntValue() & b); }
+inline CValue operator&(int a, const CValue& b) { return CValue(a & b.GetIntValue()); }
+inline CValue operator&(const CValue& a, bool b) { return CValue(a.GetIntValue() & (b ? 1 : 0)); }
+inline CValue operator|(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() | b.GetIntValue()); }
+inline CValue operator|(const CValue& a, int b) { return CValue(a.GetIntValue() | b); }
+inline CValue operator|(int a, const CValue& b) { return CValue(a | b.GetIntValue()); }
+inline CValue operator^(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() ^ b.GetIntValue()); }
+inline CValue operator^(const CValue& a, int b) { return CValue(a.GetIntValue() ^ b); }
+inline CValue operator^(int a, const CValue& b) { return CValue(a ^ b.GetIntValue()); }
+inline CValue operator~(const CValue& a) { return CValue(~a.GetIntValue()); }
+inline bool operator!(const CValue& a) { return !a.GetIntValue(); }
+'''
+          if 'operator&(const CValue' not in c:
+              with open(cv, 'a') as f: f.write(bitops)
+              print('Fixed CValue.h - added bitwise operators')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
@@ -224,6 +248,8 @@ jobs:
               c = c.replace('std::trunc(', 'MathHelper::trunc(')
               # Fix Group__ (empty group index) -> Group_0_
               c = re.sub(r'Group__(?=[A-Z])', 'Group_0_', c)
+              # Fix int var = CValue(0) -> int var = 0
+              c = re.sub(r'(\bint\s+\w+\s*=\s*)CValue\(0\)', r'\g<1>0', c)
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
           for f in glob.glob('runtime/include/ObjectFactory.h'):
@@ -238,7 +264,29 @@ jobs:
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
 
-          # SetCurrentSequenceIndex handled by CValue overload in Animations.h + operator int()
+          # Fix undeclared selectors in Generated*.h files
+          # For each .h, find selectors used in corresponding .cpp that aren't declared
+          # Track globally to avoid duplicate declarations across files
+          already_declared = set()
+          for hfile in glob.glob('runtime/include/Generated*.h'):
+              with open(hfile) as fh: h = fh.read()
+              already_declared.update(re.findall(r'ObjectSelector\s+(Group_\d+_Sprite_\d+_selector)', h))
+
+          for cppf in glob.glob('runtime/source/Generated*.cpp'):
+              basename = os.path.basename(re.sub(r'\.cpp$', '', cppf))
+              hfile = 'runtime/include/' + basename + '.h'
+              if not os.path.exists(hfile): continue
+              with open(cppf) as fh: cpp = fh.read()
+              used = set(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
+              with open(hfile) as fh: h = fh.read()
+              declared_in_file = set(re.findall(r'ObjectSelector\s+(Group_\d+_Sprite_\d+_selector)', h))
+              missing = used - already_declared
+              if missing:
+                  decls = ''.join(f'ObjectSelector {s};\n' for s in sorted(missing))
+                  h = h.replace('#pragma once', f'#pragma once\n{decls}')
+                  with open(hfile, 'w') as fh: fh.write(h)
+                  already_declared.update(missing)
+                  print(f'Added {len(missing)} missing selector declarations to {hfile}')
 
           "
 
