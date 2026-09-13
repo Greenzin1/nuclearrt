@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.0.10" />
+    <ProjectReference Include="CTFAK-Nuclear/Core/CTFAK.Core/CTFAK.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../exporter/src/Exporter.cs" Link="Exporter.cs" />
+    <Compile Include="../exporter/src/BaseExporter.cs" Link="BaseExporter.cs" />
+    <Compile Include="../exporter/src/PakBuilder.cs" Link="PakBuilder.cs" />
+    <Compile Include="../exporter/src/Compiler.cs" Link="Compiler.cs" />
+    <Compile Include="../exporter/src/BuildType.cs" Link="BuildType.cs" />
+    <Compile Include="../exporter/src/Utilites.cs" Link="Utilites.cs" />
+    <Compile Include="../exporter/src/CollisionMaskBuilder.cs" Link="CollisionMaskBuilder.cs" />
+    <Compile Include="../exporter/src/IconFactory.cs" Link="IconFactory.cs" />
+    <Compile Include="../exporter/src/Exporters/**/*.cs" LinkBase="Exporters" />
+    <Compile Include="../exporter/src/Events/**/*.cs" LinkBase="Events" />
+    <Compile Include="../exporter/src/Utils/**/*.cs" LinkBase="Utils" />
+  </ItemGroup>
+</Project>

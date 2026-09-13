@@ -1,0 +1,172 @@
+#ifdef NUCLEAR_BACKEND_SDL3
+
+#include "SDL3PlatformBackend.h"
+
+#include <string>
+#include <iostream>
+#include <SDL3/SDL.h>
+#include "SDL3Backend.h"
+#ifdef _DEBUG
+#include "DebugUI.h"
+#include "imgui.h"
+#include <imgui_impl_sdl3.h>
+#endif
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#include <emscripten.h>
+#endif
+
+void SDL3PlatformBackend::Initialize()
+{
+	//init persistent storage for web
+#if defined(PLATFORM_WEB)
+EM_ASM(
+	FS.mkdir('/disk');
+	FS.mount(IDBFS, {autoPersist: true}, '/disk');
+
+	FS.syncfs(true, function (err) {
+	});
+);
+#endif
+
+	if (!pakFile.Load(GetAssetsDirectory())) {
+		Log("PakFile::Load Error: Failed to load assets file");
+		return;
+	}
+}
+
+bool SDL3PlatformBackend::ShouldQuit()
+{
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+#ifdef _DEBUG
+		// Process ImGui events
+		if (DEBUG_UI.IsEnabled()) {
+			ImGui_ImplSDL3_ProcessEvent(&event);
+		}
+		
+		// Toggle debug UI with F1 key
+		if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F1 && event.key.repeat == 0) {
+			DEBUG_UI.ToggleEnabled();
+		}
+#endif
+		switch (event.type) {
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+				windowFocused = true;
+				break;
+			case SDL_EVENT_WINDOW_FOCUS_LOST:
+				windowFocused = false;
+				break;
+			case SDL_EVENT_QUIT:
+				return true;
+			case SDL_EVENT_GAMEPAD_ADDED:
+				backend->GetInput()->gamepads.push_back(SDL_OpenGamepad(event.gdevice.which));
+				break;
+			case SDL_EVENT_GAMEPAD_REMOVED:
+				SDL_CloseGamepad(backend->GetInput()->gamepads.back());
+				backend->GetInput()->gamepads.pop_back();
+				break;
+		}
+	}
+	return false;
+}
+
+unsigned int SDL3PlatformBackend::GetTicks()
+{
+	return SDL_GetTicks();
+}
+
+float SDL3PlatformBackend::GetTimeDelta()
+{
+	static Uint32 previousTicks = SDL_GetTicks();
+	Uint32 currentTicks = SDL_GetTicks();
+	float delta = (currentTicks - previousTicks) / 1000.0f;
+	previousTicks = currentTicks;
+	return delta;
+}
+
+void SDL3PlatformBackend::Delay(unsigned int ms)
+{
+	SDL_Delay(ms);
+}
+
+std::string SDL3PlatformBackend::GetPlatformName()
+{
+#if defined(PLATFORM_WINDOWS)
+	return "Windows";
+#elif defined(PLATFORM_MACOS)
+	return "macOS";
+#elif defined(PLATFORM_LINUX)
+	return "Linux";
+#elif defined(PLATFORM_WEB)
+	return "Web";
+#elif defined(PLATFORM_IOS)
+	return "iOS";
+#else
+	return "Unknown";
+#endif
+}
+
+std::string SDL3PlatformBackend::GetAssetsDirectory()
+{
+	return std::string(SDL_GetBasePath());
+}
+
+std::string SDL3PlatformBackend::GetAppDrive()
+{
+#if defined(PLATFORM_WINDOWS)
+std::string basePath = SDL_GetBasePath();
+	if (basePath.length() >= 2 && basePath[1] == ':') {
+		return basePath.substr(0, 2);
+	}
+	return "";
+#elif defined(PLATFORM_WEB)
+	return "/disk";
+#else
+	return "/";
+#endif
+}
+
+std::string SDL3PlatformBackend::GetAppDirectory()
+{
+#if defined(PLATFORM_WEB)
+	return "/";
+#else
+	std::string basePath = SDL_GetBasePath();
+	size_t pos = basePath.find('/');
+	if (pos != std::string::npos) {
+		return basePath.substr(pos);
+	}
+	else {
+		pos = basePath.find('\\');
+		if (pos != std::string::npos) {
+			return basePath.substr(pos);
+		}
+	}
+	return basePath;
+#endif
+}
+
+std::string SDL3PlatformBackend::GetAppPath()
+{
+#if defined(PLATFORM_WEB)
+	return "/disk/";
+#else
+	return SDL_GetBasePath();
+#endif
+}
+
+void SDL3PlatformBackend::SetFullscreen(bool fullscreen)
+{
+	SDL_SetWindowFullscreen(backend->GetGraphics()->GetSDLWindow(), fullscreen);
+}
+
+void SDL3PlatformBackend::Log(std::string text) {
+	#ifdef __EMSCRIPTEN__
+	emscripten_console_log(text.c_str());
+	#else
+	SDL_Log(text.c_str());
+	#endif
+}
+#endif

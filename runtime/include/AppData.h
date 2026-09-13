@@ -1,0 +1,181 @@
+#pragma once
+
+#include "CValue.h"
+#include <string>
+#include <vector>
+
+class AppData {
+public:
+	AppData() = default;
+	~AppData() = default;
+
+	void Initialize();
+
+	// Getters and setters
+	std::string GetAppName() const { return m_appName; }
+	void SetAppName(const std::string& name) { m_appName = name; }
+
+	std::string GetAboutBox() const { return m_aboutBox; }
+	void SetAboutBox(const std::string& about) { m_aboutBox = about; }
+
+	int GetWindowWidth() const { return m_windowWidth; }
+	void SetWindowWidth(int width) { m_windowWidth = width; }
+
+	int GetWindowHeight() const { return m_windowHeight; }
+	void SetWindowHeight(int height) { m_windowHeight = height; }
+
+	int GetTargetFPS() const { return m_targetFPS; }
+	void SetTargetFPS(int fps) { m_targetFPS = fps; }
+
+	int GetBorderColor() const { return m_borderColor; }
+	void SetBorderColor(int color) { m_borderColor = color; }
+
+	bool& GetFullscreenOnStart() { return m_fullscreenOnStart; }
+	void SetFullscreenOnStart(bool fullscreen) { m_fullscreenOnStart = fullscreen; }
+	
+	bool& GetFitInside() { return m_fitInside; }
+	void SetFitInside(bool fit) { m_fitInside = fit; }
+
+	bool& GetResizeDisplay() { return m_resizeDisplay; }
+	void SetResizeDisplay(bool resize) { m_resizeDisplay = resize; }
+
+	bool& GetAntiAliasingWhenResizing() { return m_antiAliasingWhenResizing; }
+	void SetAntiAliasingWhenResizing(bool antiAliasing) { m_antiAliasingWhenResizing = antiAliasing; }
+
+	bool& GetDontCenterFrame() { return m_dontCenterFrame; }
+	void SetDontCenterFrame(bool dontCenter) { m_dontCenterFrame = dontCenter; }
+	bool& GetSampleOverFrame() { return m_sampleOverFrame; }
+	void SetSampleOverFrame(bool sampleFrame) { m_sampleOverFrame = sampleFrame; }
+	bool& GetMultiSamples() { return m_multiSamples; }
+	void SetMultiSamples(bool multiSamples) { m_multiSamples = multiSamples; }
+	bool& GetSampleFocus() { return m_sampleFocus; }
+	void SetSampleFocus(bool sampleFocus) { m_sampleFocus = sampleFocus; }
+
+	std::vector<CValue>& GetGlobalValues() { return m_globalValues; }
+	void SetGlobalValues(const std::vector<CValue>& values) { m_globalValues = values; }
+
+	CValue GetGlobalValue(int index) { // 0-indexed
+		if (index < 0 || index > static_cast<int>(m_globalValues.size()) - 1) {
+			return CValue(0);
+		}
+		return m_globalValues[index];
+	}
+	
+	void SetGlobalValue(int index, const CValue& value) { // 0-indexed
+		if (index < 0) {
+			return;
+		}
+
+		if (index > static_cast<int>(m_globalValues.size()) - 1) {
+			m_globalValues.resize(index + 1, CValue(0));
+		}
+
+		m_globalValues[index] = value;
+	}
+
+	void AddGlobalValue(int index, const CValue& value) { // 0-indexed
+		if (index < 0) {
+			return;
+		}
+
+		if (index > static_cast<int>(m_globalValues.size()) - 1) {
+			m_globalValues.resize(index + 1, CValue(0));
+		}
+
+		m_globalValues[index] = m_globalValues[index] + value;
+	}
+
+	void SubtractGlobalValue(int index, const CValue& value) { // 0-indexed
+		if (index < 0) {
+			return;
+		}
+
+		if (index > static_cast<int>(m_globalValues.size()) - 1) {
+			m_globalValues.resize(index + 1, CValue(0));
+		}
+
+		m_globalValues[index] = m_globalValues[index] - value;
+	}
+
+	std::vector<std::string>& GetGlobalStrings() { return m_globalStrings; }
+	void SetGlobalStrings(const std::vector<std::string>& strings) { m_globalStrings = strings; }
+
+	CValue GetGlobalString(int index) {
+		if (index < 0 || index > static_cast<int>(m_globalStrings.size()) - 1) {
+			return CValue("");
+		}
+		return CValue(m_globalStrings[index]);
+	}
+
+	void SetGlobalString(int index, const CValue& string) {
+		if (index < 0) {
+			return;
+		}
+		
+		if (index > static_cast<int>(m_globalStrings.size()) - 1) {
+			m_globalStrings.resize(index + 1, "");
+		}
+
+		m_globalStrings[index] = string.GetStringValue();
+	}
+
+	std::vector<int>& GetControlTypes() { return m_controlTypes; }
+	void SetControlTypes(const std::vector<int>& types) { m_controlTypes = types; }
+
+	std::vector<std::vector<int>>& GetControlKeys() { return m_controlKeys; }
+	void SetControlKeys(const std::vector<std::vector<int>>& keys) { m_controlKeys = keys; }
+
+	std::vector<int>& GetPlayerScores() { return m_playerScores; }
+	CValue GetPlayerScore(int playerIndex) { return CValue(m_playerScores[playerIndex]); }
+	void SetPlayerScores(const std::vector<int>& scores) { m_playerScores = scores; }
+	void SetScore(int playerIndex, const CValue& score) { m_playerScores[playerIndex] = score.GetIntValue(); }
+	void AddScore(int playerIndex, const CValue& score) { m_playerScores[playerIndex] = m_playerScores[playerIndex] + score.GetIntValue(); }
+	void SubtractScore(int playerIndex, const CValue& score) {
+		m_playerScores[playerIndex] = m_playerScores[playerIndex] - score.GetIntValue();
+		if (m_playerScores[playerIndex] < 0) {
+			m_playerScores[playerIndex] = 0;
+		}
+	}
+
+	std::vector<int>& GetPlayerLives() { return m_playerLives; }
+	CValue GetPlayerLives(int playerIndex) { return CValue(m_playerLives[playerIndex]); }
+	void SetPlayerLives(const std::vector<int>& lives) { m_playerLives = lives; }
+	void SetLives(int playerIndex, const CValue& lives) { m_playerLives[playerIndex] = lives.GetIntValue(); }
+	void AddLives(int playerIndex, CValue lives) { m_playerLives[playerIndex] += lives.GetIntValue(); }
+	void SubtractLives(int playerIndex, CValue lives) {
+		m_playerLives[playerIndex] = m_playerLives[playerIndex] - lives.GetIntValue();
+		if (m_playerLives[playerIndex] < 0) {
+			m_playerLives[playerIndex] = 0;
+		}
+	}
+
+private:
+	// Default values
+	std::string m_appName = "NuclearRT";
+	std::string m_aboutBox = "";
+	int m_windowWidth = 640;
+	int m_windowHeight = 480;
+	int m_targetFPS = 60;
+	int m_borderColor = 0;
+	bool m_fullscreenOnStart = false;
+	bool m_fitInside = false;
+	bool m_resizeDisplay = false;
+	bool m_antiAliasingWhenResizing = false;
+	bool m_dontCenterFrame = false;
+	bool m_sampleOverFrame = false;
+	bool m_multiSamples = true;
+	bool m_sampleFocus = false;
+	std::vector<CValue> m_globalValues;
+	std::vector<std::string> m_globalStrings;
+
+	std::vector<int> m_controlTypes = { 5, 5, 5, 5 };
+	std::vector<std::vector<int>> m_controlKeys = { 
+		{ 38, 40, 37, 39, 16, 17, 32, 13 },
+		{ 38, 40, 37, 39, 16, 17, 32, 13 },
+		{ 38, 40, 37, 39, 16, 17, 32, 13 },
+		{ 38, 40, 37, 39, 16, 17, 32, 13 }
+	};
+
+	std::vector<int> m_playerScores = { 0, 0, 0, 0 };
+	std::vector<int> m_playerLives = { 3, 3, 3, 3 };
+};	

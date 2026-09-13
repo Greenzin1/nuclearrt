@@ -1,0 +1,177 @@
+#pragma once
+
+#include <memory>
+#include <vector>
+
+#include "ObjectGlobalDataString.h"
+#include "Paragraph.h"
+#include "Shape.h"
+#include "ObjectSelector.h"
+
+class StringObject : public ObjectInstance {
+public:
+	StringObject(unsigned int objectInfoHandle, int type, std::string name)
+		: ObjectInstance(objectInfoHandle, type, name) {}
+
+	int Width;
+	int Height;
+
+	bool Visible = true;
+
+	std::vector<Paragraph> Paragraphs;
+
+	int CurrentParagraph = 0;
+	std::string AlterableText;
+
+	AlterableValues Values;
+	AlterableStrings Strings;
+	AlterableFlags Flags;
+	
+	CValue GetText()
+	{
+		return GetTextOfParagraph(CValue(CurrentParagraph));
+	}
+
+	CValue GetTextOfParagraph(const CValue& paragraph)
+	{
+		if (paragraph.GetIntValue() == -1)
+		{
+			return CValue(AlterableText);
+		}
+		else
+		{
+			return CValue(Paragraphs[paragraph.GetIntValue()].Text);
+		}
+	}
+
+	static CValue GetTextOfParagraph(ObjectSelector& selector, const CValue& paragraph)
+	{
+		if (selector.Count() > 0)
+		{
+			return ((StringObject*)*selector.begin())->GetTextOfParagraph(paragraph);
+		}
+		return CValue(""); // default value
+	}
+
+	unsigned short GetFont()
+	{
+		if (CurrentParagraph == -1)
+		{
+			return Paragraphs[0].Font; // TODO: Verify
+		}
+		else
+		{
+			return Paragraphs[CurrentParagraph].Font;
+		}
+	}
+
+	int GetColor()
+	{
+		if (CurrentParagraph == -1)
+		{
+			return Paragraphs[0].Color; // TODO: Verify
+		}
+		else
+		{
+			return Paragraphs[CurrentParagraph].Color;
+		}
+	}
+
+	void SetCurrentParagraph(const CValue& currentParagraph)
+	{
+		CurrentParagraph = currentParagraph.GetIntValue();
+		if (CurrentParagraph >= Paragraphs.size())
+		{
+			CurrentParagraph = static_cast<int>(Paragraphs.size() - 1);
+		}
+		else if (CurrentParagraph < 0)
+		{
+			CurrentParagraph = 0;
+		}
+	}
+
+	int GetNumberOfCurrentParagraph()
+	{
+		return CurrentParagraph;
+	}
+
+	void SetPreviousParagraph()
+	{
+		if (CurrentParagraph == -1)
+		{
+			CurrentParagraph = 0;
+			return;
+		}
+
+		if (CurrentParagraph > 0)
+		{
+			CurrentParagraph--;
+		}
+	}
+
+	void SetNextParagraph()
+	{
+		if (CurrentParagraph == -1)
+		{
+			CurrentParagraph = 0;
+			return;
+		}
+
+		if (CurrentParagraph < Paragraphs.size() - 1)
+		{
+			CurrentParagraph++;
+		}
+	}
+
+	void SetAlterableText(const CValue& alterableText)
+	{
+		AlterableText = alterableText.GetStringValue();
+		CurrentParagraph = -1;
+	}
+
+	int GetParagraphCount()
+	{
+		return static_cast<int>(Paragraphs.size());
+	}
+
+	unsigned char GetHorizontalAlignment()
+	{
+		if (CurrentParagraph == -1)
+			return Paragraphs[0].HorizontalAlignment; 
+		else
+			return Paragraphs[CurrentParagraph].HorizontalAlignment;
+	}
+
+	unsigned char GetVerticalAlignment()
+	{
+		if (CurrentParagraph == -1)
+			return Paragraphs[0].VerticalAlignment;
+		else
+			return Paragraphs[CurrentParagraph].VerticalAlignment;
+	}
+
+	std::vector<unsigned int> GetFontsUsed() override {
+		std::vector<unsigned int> fontsUsed;
+		for (auto& paragraph : Paragraphs)
+		{
+			fontsUsed.push_back(paragraph.Font);
+		}
+		return fontsUsed;
+	}
+
+	ObjectGlobalDataString* CreateGlobalData() override {
+		ObjectGlobalDataString* globalData = new ObjectGlobalDataString(ObjectInfoHandle);
+
+		globalData->alterableText = AlterableText;
+		globalData->currentParagraph = CurrentParagraph;
+
+		return globalData;
+	}
+
+	void ApplyGlobalData(ObjectGlobalData* globalData) override {
+		ObjectGlobalDataString* stringData = (ObjectGlobalDataString*)globalData;
+
+		AlterableText = stringData->alterableText;
+		CurrentParagraph = stringData->currentParagraph;
+	}
+};

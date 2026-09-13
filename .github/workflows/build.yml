@@ -1,0 +1,173 @@
+name: Build Sonic XG Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6 + 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            9.0.x
+
+      - name: Build CLI Exporter
+        working-directory: cli
+        run: dotnet publish -c Release
+
+      - name: Download Sonic XG 2017
+        run: |
+          mkdir extracted
+          curl -L -o "extracted\Sonic XG 2017.exe" "https://github.com/Greenzin1/nuclearrt/releases/download/sonic-xg-2017/Sonic_XG_2017.exe"
+
+      - name: Clone CTFAK 2.0
+        run: git clone --depth 1 https://github.com/CTFAK/CTFAK2.0.git ctfak
+
+      - name: Patch CTFAK for CI
+        shell: pwsh
+        run: |
+          $art = "ctfak/Interface/CTFAK.Cli/ASCIIArt.cs"
+          (Get-Content $art -Raw) -replace 'Console\.WindowWidth', '80' -replace 'Console\.WindowHeight', '24' | Set-Content $art
+          $prog = "ctfak/Interface/CTFAK.Cli/Program.cs"
+          $progContent = Get-Content $prog -Raw
+          $progContent = $progContent.Replace("Console.Clear();", "try { Console.Clear(); } catch { }")
+          $progContent = $progContent.Replace("Console.ReadKey();", "// Console.ReadKey() - skipped for CI")
+          $progContent | Set-Content $prog
+          $img = "ctfak/Core/CTFAK.Core/CCN/Chunks/Banks/ImageBank/ImageBank.cs"
+          $imgContent = Get-Content $img -Raw
+          $imgContent = $imgContent.Replace("newImg.Read(reader);", "try { newImg.Read(reader); } catch (Exception ex) { Console.WriteLine('Image overflow: ' + ex.Message); }")
+          $imgContent = $imgContent.Replace("foreach (var task in imageReadingTasks) task.Wait();", "foreach (var task in imageReadingTasks) { try { task.Wait(); } catch { } }")
+          $imgContent | Set-Content $img
+          $agi = "ctfak/Core/CTFAK.Core/MFA/AGMIBank.cs"
+          $agiContent = Get-Content $agi -Raw
+          $agiContent = $agiContent.Replace("foreach (var task in _imageWriteTasks) task.Wait();", "foreach (var task in _imageWriteTasks) { try { task.Wait(); } catch (Exception ex) { Console.WriteLine('AGMI overflow: ' + ex.Message); } }")
+          $agiContent | Set-Content $agi
+
+      - name: Build CTFAK 2.0
+        run: dotnet publish ctfak/Interface/CTFAK.Cli/CTFAK.Cli.csproj -c Release
+
+      - name: Build CTFAK Plugins
+        run: |
+          dotnet publish ctfak/Plugins/CTFAK.Decompiler/CTFAK.Decompiler.csproj -c Release
+          dotnet publish ctfak/Plugins/Dumper/Dumper.csproj -c Release
+
+      - name: Setup CTFAK
+        shell: pwsh
+        run: |
+          $cliDir = "ctfak/Interface/CTFAK.Cli/bin/Release/net6.0-windows/publish"
+          New-Item -ItemType Directory -Force -Path "$cliDir/Plugins"
+          Copy-Item "ctfak/Plugins/CTFAK.Decompiler/bin/Release/net6.0-windows/publish/CTFAK.Decompiler.dll" "$cliDir/Plugins/"
+          Copy-Item "ctfak/Plugins/Dumper/bin/Release/net6.0-windows/publish/Dumper.dll" "$cliDir/Plugins/"
+          curl -L -o req.zip "https://github.com/CTFAK/.github/raw/main/ctfakrequirements.zip"
+          7z x req.zip -o"$cliDir"
+
+      - name: Decompile exe to MFA
+        shell: pwsh
+        run: |
+          $cliDir = "ctfak/Interface/CTFAK.Cli/bin/Release/net6.0-windows/publish"
+          $exePath = (Resolve-Path "extracted\Sonic XG 2017.exe").Path
+          & "$cliDir/CTFAK.Cli.exe" -path $exePath -tool "Export as MFA" -closeonfinish
+
+      - name: Find MFA file
+        id: find-mfa
+        shell: pwsh
+        run: |
+          $mfa = Get-ChildItem -Recurse -Filter "*.mfa" | Select-Object -First 1
+          if ($mfa) {
+            echo "mfa_path=$($mfa.FullName)" >> $env:GITHUB_OUTPUT
+            Write-Host "Found MFA: $($mfa.FullName)"
+          } else {
+            Write-Host "No MFA found. Listing files:"
+            Get-ChildItem -Recurse -File | Select-Object FullName
+            exit 1
+          }
+
+      - name: Export with NuclearRT
+        shell: pwsh
+        run: |
+          $fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+          New-Item -ItemType Directory -Force -Path $fontsDir | Out-Null
+          $mfa = "${{ steps.find-mfa.outputs.mfa_path }}"
+          Copy-Item $mfa "input.mfa" -Force
+          cli\bin\Release\net9.0-windows\publish\cli.exe SourceCode input.mfa output
+
+      - name: Upload exported data
+        uses: actions/upload-artifact@v4
+        with:
+          name: exported-data
+          path: output/
+
+  build-web:
+    needs: export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout runtime
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: runtime
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Setup Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Download exported data
+        uses: actions/download-artifact@v4
+        with:
+          name: exported-data
+          path: output/
+
+      - name: Copy data into runtime
+        run: |
+          cp -r output/include/* runtime/include/
+          cp -r output/source/* runtime/source/
+          mkdir -p runtime/copy
+          cp -r output/copy/* runtime/copy/
+          find runtime/source -name "*.template.*" -delete
+          find runtime/include -name "*.template.*" -delete
+
+      - name: Patch for Emscripten
+        run: |
+          python3 -c "
+          p = 'runtime/source/SDL2PlatformBackend.cpp'
+          with open(p) as f: c = f.read()
+          c = c.replace('emscripten_console_log(text.c_str())', 'printf(\"%s\\\\n\", text.c_str())')
+          with open(p,'w') as f: f.write(c)
+          print('Patched SDL2PlatformBackend.cpp')
+          "
+
+      - name: Build Runtime for Web
+        shell: pwsh
+        run: |
+          $link = "runtime/cmake/backend_sdl2_link.cmake"
+          (Get-Content $link -Raw) -replace 'SDL2_ttf::SDL2_ttf', 'SDL2_ttf' | Set-Content $link
+          embuilder build freetype
+          mkdir -p build/web
+          cd build/web
+          emcmake cmake ../../runtime -DCMAKE_BUILD_TYPE=Release -DPLATFORM_BACKEND=SDL2 -DBUILD_SHARED_LIBS=OFF -DSDL_SHARED=OFF -DCMAKE_C_FLAGS="-sUSE_FREETYPE" -DCMAKE_CXX_FLAGS="-sUSE_FREETYPE" -DCMAKE_EXE_LINKER_FLAGS="-sUSE_FREETYPE" -G Ninja
+          cmake --build .
+
+      - name: Package Web Build
+        run: |
+          mkdir -p web-build
+          find build/web -name "*.js" -exec cp {} web-build/ \;
+          find build/web -name "*.wasm" -exec cp {} web-build/ \;
+          find build/web -name "*.data" -exec cp {} web-build/ \;
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonic-xg-web
+          path: web-build/
