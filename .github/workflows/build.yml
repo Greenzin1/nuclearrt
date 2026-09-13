@@ -235,7 +235,7 @@ jobs:
                       elif content[j] == ')': depth -= 1
                       j += 1
                   arg = content[start:j-1]
-                  result.append(f'static_cast<int>({arg})')
+                  result.append(f'({arg}).GetIntValue()')
                   i = j
               return ''.join(result)
 
