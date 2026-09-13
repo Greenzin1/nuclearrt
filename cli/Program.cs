@@ -84,11 +84,14 @@ class CliExporter
         }
         else
         {
-            Console.WriteLine("Reading .exe file (CCNFileReader)...");
-            ccnReader.LoadGame(exePath);
+            Console.WriteLine("Reading .exe file...");
+            var exeReader = new ExeFileReader();
+            exeReader.LoadGame(exePath);
+            ccnReader.game = exeReader.getGameData();
 
             Console.WriteLine($"Game Name: {ccnReader.game.name}");
 
+            // Find .mfa for frame data
             string editorFilename = ccnReader.game.editorFilename;
             if (!string.IsNullOrEmpty(editorFilename) && File.Exists(editorFilename))
             {
@@ -105,7 +108,7 @@ class CliExporter
                 }
                 else
                 {
-                    Console.WriteLine("No MFA file found. Exporter may have limited frame data.");
+                    Console.WriteLine("No MFA file found.");
                     mfaReader.mfa = new MFAData();
                 }
             }
