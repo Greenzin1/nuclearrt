@@ -181,13 +181,22 @@ jobs:
                   '    static inline int StaticInt(const CValue& v) { return v.GetIntValue(); }\n    static inline double StaticDouble(const CValue& v) { return v.GetDoubleValue(); }\n    void ConvertToString()')
               with open(cv, 'w') as f: f.write(c)
               print('Fixed CValue.h - added static helpers')
-          # Restore operator int() if it was removed (needed for CTFAK-generated code)
+          # Restore operator int() for CTFAK-generated code (CValue arithmetic needs it)
           if 'operator int()' not in c:
               c = c.replace(
                   '    void ConvertToString()',
                   '    operator int() const { return GetIntValue(); }\n    void ConvertToString()')
               with open(cv, 'w') as f: f.write(c)
               print('Fixed CValue.h - restored operator int()')
+          # Remove operator float() to fix CValue + float ambiguity
+          import re as _re
+          c_before = c
+          c = _re.sub(r'\s*operator\s+float\s*\(\)\s*[^;]*;\s*\n?', '\n', c)
+          if c != c_before:
+              with open(cv, 'w') as f: f.write(c)
+              print('Fixed CValue.h - removed operator float() to fix ambiguity')
+          else:
+              print('CValue.h - no operator float() to remove')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
