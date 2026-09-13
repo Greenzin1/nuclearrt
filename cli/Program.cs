@@ -92,26 +92,34 @@ class CliExporter
 
             Console.WriteLine($"Game Name: {ccnReader.game.name}");
 
-            // Find .mfa for frame data
-            string editorFilename = ccnReader.game.editorFilename;
-            if (!string.IsNullOrEmpty(editorFilename) && File.Exists(editorFilename))
+            // Find .mfa for frame data (optional, exe has images/sounds/fonts)
+            try
             {
-                Console.WriteLine($"Reading MFA from editor path: {editorFilename}");
-                mfaReader.LoadGame(editorFilename);
-            }
-            else
-            {
-                var mfaFiles = Directory.GetFiles(".", "*.mfa", SearchOption.AllDirectories);
-                if (mfaFiles.Length > 0)
+                string editorFilename = ccnReader.game.editorFilename;
+                if (!string.IsNullOrEmpty(editorFilename) && File.Exists(editorFilename))
                 {
-                    Console.WriteLine($"Found MFA: {mfaFiles[0]}");
-                    mfaReader.LoadGame(mfaFiles[0]);
+                    Console.WriteLine($"Reading MFA from editor path: {editorFilename}");
+                    mfaReader.LoadGame(editorFilename);
                 }
                 else
                 {
-                    Console.WriteLine("No MFA file found.");
-                    mfaReader.mfa = new MFAData();
+                    var mfaFiles = Directory.GetFiles(".", "*.mfa", SearchOption.AllDirectories);
+                    if (mfaFiles.Length > 0)
+                    {
+                        Console.WriteLine($"Found MFA: {mfaFiles[0]}");
+                        mfaReader.LoadGame(mfaFiles[0]);
+                    }
+                    else
+                    {
+                        Console.WriteLine("No MFA file found.");
+                        mfaReader.mfa = new MFAData();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MFA load failed (exe has assets): {ex.Message}");
+                mfaReader.mfa = new MFAData();
             }
         }
 
