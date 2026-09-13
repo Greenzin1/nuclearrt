@@ -171,19 +171,26 @@ jobs:
         run: |
           python3 -c "
           import glob, re
-          for f in glob.glob('runtime/source/Generated*.cpp') + glob.glob('runtime/source/Generated*.h'):
+
+          # Fix MathHelper.h - add missing CValue overloads
+          mh = 'runtime/include/MathHelper.h'
+          with open(mh) as f: c = f.read()
+          if 'Cos(const CValue' not in c:
+              c = c.replace(
+                  'inline CValue Sin(const CValue& v) { return CValue(Sin(v.GetDoubleValue())); }',
+                  'inline CValue Sin(const CValue& v) { return CValue(Sin(v.GetDoubleValue())); }\n    inline CValue Cos(const CValue& v) { return CValue(Cos(v.GetDoubleValue())); }\n    inline CValue Tan(const CValue& v) { return CValue(Tan(v.GetDoubleValue())); }\n    inline CValue ASin(const CValue& v) { return CValue(ASin(v.GetDoubleValue())); }\n    inline CValue ACos(const CValue& v) { return CValue(ACos(v.GetDoubleValue())); }\n    inline CValue ATan(const CValue& v) { return CValue(ATan(v.GetDoubleValue())); }')
+              with open(mh, 'w') as f: f.write(c)
+              print('Fixed MathHelper.h - added CValue overloads')
+
+          # Fix GeneratedFrame*.cpp and Generated*.h placeholders
+          for f in glob.glob('runtime/source/Generated*.cpp') + glob.glob('runtime/include/Generated*.h'):
               with open(f) as fh: c = fh.read()
-              # Replace /* Expression not found: ... */ with CValue(0)
               c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
-              # Replace /* Condition not found: ... */ with true
               c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
-              # Replace /* Action not found: ... */ with empty
               c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
-              # Replace any remaining /* ... */ that would cause issues
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
-          # Also fix ObjectFactory.h
-          for f in glob.glob('runtime/include/Generated*.h') + glob.glob('runtime/include/ObjectFactory.h'):
+          for f in glob.glob('runtime/include/ObjectFactory.h'):
               with open(f) as fh: c = fh.read()
               c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
               c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
