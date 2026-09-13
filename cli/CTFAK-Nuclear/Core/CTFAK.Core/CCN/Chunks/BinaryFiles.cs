@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using CTFAK.Memory;
 using CTFAK.MFA;
@@ -6,26 +6,25 @@ using CTFAK.Utils;
 
 namespace CTFAK.CCN.Chunks
 {
-    public class BinaryFile : ChunkLoader
+    public class BinaryFile:ChunkLoader
     {
         public string name;
         public byte[] data;
 
+
         public override void Read(ByteReader reader)
         {
-            int size = reader.ReadInt16();
+            name = reader.ReadYuniversal(reader.ReadInt16());
+            data = reader.ReadBytes(reader.ReadInt32());
+        }
 
-            if (Settings.isMFA)
-                reader.Skip(2);
-
-            name = reader.ReadYuniversal(size);
-
-            if (!Settings.isMFA)
-                data = reader.ReadBytes(reader.ReadInt32());
+        public override void Write(ByteWriter writer)
+        {
+            writer.AutoWriteUnicode(name);
         }
     }
 
-    public class BinaryFiles : ChunkLoader
+    public class BinaryFiles:ChunkLoader
     {
         public List<BinaryFile> files = new List<BinaryFile>();
         public int count;
@@ -39,6 +38,13 @@ namespace CTFAK.CCN.Chunks
                 file.Read(reader);
                 files.Add(file);
             }
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            writer.WriteInt32(files.Count);
+            foreach (var item in files)
+                item.Write(writer);
         }
     }
 }

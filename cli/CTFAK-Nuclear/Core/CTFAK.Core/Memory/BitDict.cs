@@ -1,4 +1,5 @@
-using CTFAK.Utils;
+﻿using CTFAK.Utils;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,13 +30,6 @@ namespace CTFAK.Memory
         public bool GetFlag(string key)
         {
             int pos = Array.IndexOf(Keys, key);
-            if (pos >= 0)
-                return (flag & ((uint)Math.Pow(2, pos))) != 0;
-            return false;
-        }
-
-        public bool GetFlag(int pos)
-        {
             if (pos >= 0)
                 return (flag & ((uint)Math.Pow(2, pos))) != 0;
             return false;

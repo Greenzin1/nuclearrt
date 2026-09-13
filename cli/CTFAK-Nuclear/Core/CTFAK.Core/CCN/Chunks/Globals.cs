@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using CTFAK.CCN.Chunks;
 using CTFAK.Memory;
 
 namespace CTFAK.CCN.Chunks
 {
-    public class GlobalValues : ChunkLoader
+    public class GlobalValues:ChunkLoader
     {
         public List<object> Items = new List<object>();
 
@@ -35,11 +35,16 @@ namespace CTFAK.CCN.Chunks
             }
             catch { }
         }
-    }
 
-    public class GlobalStrings : ChunkLoader
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+    public class GlobalStrings:ChunkLoader
     {
         public List<string> Items = new List<string>();
+ 
 
         public override void Read(ByteReader reader)
         {
@@ -53,6 +58,11 @@ namespace CTFAK.CCN.Chunks
                 }
             }
             catch { }
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

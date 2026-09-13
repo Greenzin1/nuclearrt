@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using CTFAK.Memory;
 using CTFAK.Utils;
@@ -7,7 +7,7 @@ namespace CTFAK.CCN.Chunks.Objects
 {
     public class Animations : ChunkLoader
     {
-        public Dictionary<int, Animation> AnimationDict = new Dictionary<int, Animation>();
+        public Dictionary<int, Animation> AnimationDict;
 
         public override void Read(ByteReader reader)
         {
@@ -32,17 +32,22 @@ namespace CTFAK.CCN.Chunks.Objects
                     anim.Read(reader);
                     AnimationDict.Add(i, anim);
                 }
-                //else
-                //{
-                //    AnimationDict.Add(i, new Animation());
-                //}
+                else
+                {
+                    AnimationDict.Add(i, new Animation());
+                }
             }
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
         }
     }
 
     public class Animation : ChunkLoader
     {
-        public Dictionary<int, AnimationDirection> DirectionDict = new Dictionary<int, AnimationDirection>();
+        public Dictionary<int, AnimationDirection> DirectionDict;
 
 
         public override void Read(ByteReader reader)
@@ -65,13 +70,21 @@ namespace CTFAK.CCN.Chunks.Objects
                     dir.Read(reader);
                     DirectionDict.Add(i, dir);
                 }
-                //else
-                //{
-                //    DirectionDict.Add(i, new AnimationDirection());
-                //}
+                else
+                {
+                    DirectionDict.Add(i, new AnimationDirection());
+                }
 
             }
         }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
+        }
+
+
+
     }
 
     public class AnimationDirection : ChunkLoader
@@ -102,5 +115,12 @@ namespace CTFAK.CCN.Chunks.Objects
 
 
         }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
+        }
+
+
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using CTFAK.CCN.Chunks;
 using CTFAK.Memory;
@@ -6,10 +6,10 @@ using CTFAK.Utils;
 
 namespace CTFAK.CCN.Chunks.Objects
 {
-    public class AlterableValues : ChunkLoader
+    public class AlterableValues:ChunkLoader
     {
         public List<int> Items = new List<int>();
-        public BitDict Flags = new BitDict(new string[] { });
+        public int Flags = 0;
 
         public override void Read(ByteReader reader)
         {
@@ -28,9 +28,14 @@ namespace CTFAK.CCN.Chunks.Objects
             }
             try
             {
-                Flags.flag = reader.ReadUInt32();
+                Flags = reader.ReadInt32();
             }
-            catch { }
+            catch {}
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
         }
     }
 
@@ -53,6 +58,11 @@ namespace CTFAK.CCN.Chunks.Objects
                 }
                 //Logger.Log($"Reading AltStr {i}: {Items[i]}");
             }
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

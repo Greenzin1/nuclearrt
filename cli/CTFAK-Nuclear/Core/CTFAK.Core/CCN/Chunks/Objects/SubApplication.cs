@@ -22,5 +22,10 @@ namespace CTFAK.Core.CCN.Chunks.Objects
             odOptions = reader.ReadInt32();
             //odName = reader.ReadYuniversal();
         }
+
+        public override void Write(ByteWriter Writer)
+        {
+
+        }
     }
 }

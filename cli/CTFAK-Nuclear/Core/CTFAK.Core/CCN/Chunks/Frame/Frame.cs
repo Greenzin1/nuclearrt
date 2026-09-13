@@ -1,4 +1,4 @@
-using CTFAK.CCN.Chunks.Objects;
+﻿using CTFAK.CCN.Chunks.Objects;
 using CTFAK.Memory;
 using CTFAK.Utils;
 using System;
@@ -27,12 +27,27 @@ namespace CTFAK.CCN.Chunks.Frame
         {
             handle = reader.ReadUInt16();
             objectInfo = reader.ReadUInt16();
-            x = reader.ReadInt32();
-            y = reader.ReadInt32();
+
+            if (Settings.Old)
+            {
+                y = reader.ReadInt16();
+                x = reader.ReadInt16();
+            }
+            else
+            {
+                x = reader.ReadInt32();
+                y = reader.ReadInt32();
+            }
             parentType = reader.ReadInt16();
-            instance = reader.ReadInt16();
-            layer = reader.ReadInt16();
             parentHandle = reader.ReadInt16();
+            if (Settings.Old || Settings.F3) return;
+            layer = reader.ReadInt16();
+            instance = reader.ReadInt16();
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new NotImplementedException();
         }
     }
     public class VirtualRect : ChunkLoader
@@ -41,13 +56,17 @@ namespace CTFAK.CCN.Chunks.Frame
         public int top;
         public int right;
         public int bottom;
-
         public override void Read(ByteReader reader)
         {
             left = reader.ReadInt32();
             top = reader.ReadInt32();
             right = reader.ReadInt32();
             bottom = reader.ReadInt32();
+        }
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new NotImplementedException();
         }
     }
     public class Frame : ChunkLoader
@@ -59,26 +78,26 @@ namespace CTFAK.CCN.Chunks.Frame
         public Events events;
         public BitDict flags = new BitDict(new string[]
         {
-                        "DisplayTitle",
-                        "GrabDesktop",
-                        "KeepDisplay",
-                        "Unk1",
-                        "Unk2",
-                        "HandleCollision",
-                        "Unk3",
-                        "Unk4",
-                        "ResizeAtStart",
-                        "Unk5",
-                        "Unk6",
-                        "Unk7",
-                        "Unk8",
-                        "Unk9",
-                        "Unk10",
-                        "TimeMovements",
-                        "Unk11",
-                        "Unk12",
-                        "DontInclude",
-                        "DontEraseBG"
+            "DisplayTitle",
+            "GrabDesktop",
+            "KeepDisplay",
+            "Unk1",
+            "Unk2",
+            "HandleCollision",
+            "Unk3",
+            "Unk4",
+            "ResizeAtStart",
+            "Unk5",
+            "Unk6",
+            "Unk7",
+            "Unk8",
+            "Unk9",
+            "Unk10",
+            "TimeMovements",
+            "Unk11",
+            "Unk12",
+            "DontInclude",
+            "DontEraseBG"
         });
         public List<ObjectInstance> objects = new();
         public Layers layers;
@@ -107,14 +126,14 @@ namespace CTFAK.CCN.Chunks.Frame
                 if (CTFAKCore.parameters.Contains("-onlyimages"))
                 {
                     if (newChunk.Id != 13109 && // Name
-                            newChunk.Id != 13112)   // Object Instances
+                        newChunk.Id != 13112)   // Object Instances
                         continue;
                 }
                 //Logger.Log("Reading Frame Chunk: " + newChunk.Id);
-                //if (ChunkList.ChunkNames.TryGetValue(newChunk.Id, out string chunkName))
-                //    Logger.Log($"Reading Chunk {newChunk.Id} ({chunkName})");
-                //else
-                //    Logger.Log($"Reading Chunk {newChunk.Id}");
+                if (ChunkList.ChunkNames.TryGetValue(newChunk.Id, out string chunkName))
+                    Logger.Log($"Reading Chunk {newChunk.Id} ({chunkName})");
+                else
+                    Logger.Log($"Reading Chunk {newChunk.Id}");
                 if (newChunk.Id == 32639) break;
                 switch (newChunk.Id)
                 {
@@ -171,11 +190,11 @@ namespace CTFAK.CCN.Chunks.Frame
                             events.Read(chunkReader);
                         break;
                     /*case 13118: // Play Header
-	break;
-case 13119: // Additional Items
-	break;
-case 13120: // Additional Items Instances
-	break;*/
+                        break;
+                    case 13119: // Additional Items
+                        break;
+                    case 13120: // Additional Items Instances
+                        break;*/
                     case 13121: // Layers
                         layers = new Layers();
                         layers.Read(chunkReader);
@@ -185,7 +204,7 @@ case 13120: // Additional Items Instances
                         virtualRect.Read(chunkReader);
                         break;
                     /*case 13123: // Demo File Path
-	break;*/
+                        break;*/
                     case 13124: // Random Seed
                         randomSeed = chunkReader.ReadInt16();
                         break;
@@ -195,7 +214,7 @@ case 13120: // Additional Items Instances
                         {
                             layers.Items[i].Effect = chunkReader.ReadInt16();
                             layers.Items[i].EffectParam = chunkReader.ReadInt16();
-                            layers.Items[i].RGBCoeff = chunkReader.ReadABGR();
+                            layers.Items[i].RGBCoeff = chunkReader.ReadColor();
                             layers.Items[i].InkEffect = chunkReader.ReadInt32();
                             var numberOfParams = chunkReader.ReadInt32();
                             var offset = chunkReader.ReadInt32();
@@ -213,15 +232,35 @@ case 13120: // Additional Items Instances
                             layers.Items[i].shaderData.hasShader = true;
                             var returnOffset = chunkReader.Tell();
                             chunkReader.Seek(offset);
+                            var shdr = CTFAKCore.currentReader.getGameData().shaders.ShaderList[layers.Items[i].InkEffect];
+                            if (CTFAKCore.parameters.Contains("-chunk_info"))
+                                Logger.Log("Shader Name: " + shdr.Name);
+                            layers.Items[i].shaderData.name = shdr.Name;
                             layers.Items[i].shaderData.ShaderHandle = layers.Items[i].InkEffect;
 
                             for (int ii = 0; ii < numberOfParams; ii++)
                             {
+                                var param = shdr.Parameters[ii];
+                                object paramValue;
+                                switch (param.Type)
+                                {
+                                    case 0:
+                                    case 2:
+                                    case 3: //Image Handle
+                                        paramValue = chunkReader.ReadInt32();
+                                        break;
+                                    case 1:
+                                        paramValue = chunkReader.ReadSingle();
+                                        break;
+                                    default:
+                                        paramValue = "unknownType";
+                                        break;
+                                }
                                 layers.Items[i].shaderData.parameters.Add(new ObjectInfo.ShaderParameter()
                                 {
-                                    Name = "unk",
-                                    ValueType = -1,
-                                    Value = chunkReader.ReadBytes(4)
+                                    Name = param.Name,
+                                    ValueType = param.Type,
+                                    Value = paramValue
                                 });
                             }
                             chunkReader.Seek(returnOffset);
@@ -235,11 +274,11 @@ case 13120: // Additional Items Instances
                         movementTimer = chunkReader.ReadInt32();
                         break;
                     /*case 13128: // Mosaic Image Table
-	break;*/
+                        break;*/
                     case 13129: // Frame Effects
                         Effect = chunkReader.ReadInt16();
                         EffectParam = chunkReader.ReadInt16();
-                        RGBCoeff = chunkReader.ReadABGR();
+                        RGBCoeff = chunkReader.ReadColor();
                         InkEffect = chunkReader.ReadInt32();
                         var FrmNumberOfParams = chunkReader.ReadInt32();
                         if (CTFAKCore.parameters.Contains("-chunk_info"))
@@ -292,24 +331,30 @@ case 13120: // Additional Items Instances
                         var iPhoneOptions = chunkReader.ReadInt16();
                         break;
                     /*case 13131: // Unknown
-	break;
-case 13132: // Unknown
-	break;*/
+                        break;
+                    case 13132: // Unknown
+                        break;*/
                     default:
-                        //Logger.Log("No Reader for Frame Chunk " + newChunk.Id);
+                        Logger.Log("No Reader for Frame Chunk " + newChunk.Id);
                         if (CTFAKCore.parameters.Contains("-dumpnewchunks"))
                             File.WriteAllBytes("UnkChunks\\Frame\\" + newChunk.Id + ".bin", chunkReader.ReadBytes());
                         break;
                 }
             }
 
-            //Logger.Log($"Frame Found: {name}, {width}x{height}, {objects.Count} objects.", true, ConsoleColor.Green);
+            Logger.Log($"Frame Found: {name}, {width}x{height}, {objects.Count} objects.", true, ConsoleColor.Green);
+        }
+        
+
+        public override void Write(ByteWriter writer)
+        {
+            throw new NotImplementedException();
         }
     }
-
     public class Layers : ChunkLoader
     {
         public List<Layer> Items;
+
 
         public override void Read(ByteReader reader)
         {
@@ -321,7 +366,20 @@ case 13132: // Unknown
                 item.Read(reader);
                 Items.Add(item);
             }
+
         }
+
+        public override void Write(ByteWriter Writer)
+        {
+            Writer.WriteInt32(Items.Count);
+            foreach (Layer layer in Items)
+            {
+                layer.Write(Writer);
+            }
+        }
+
+
+
     }
 
     public class Layer : ChunkLoader
@@ -329,19 +387,18 @@ case 13132: // Unknown
         public string Name;
         public BitDict Flags = new BitDict(new string[]
         {
-                        "XCoefficient",
-                        "YCoefficient",
-                        "DoNotSaveBackground",
-                        "",
-                        "Visible",
-                        "WrapHorizontally",
-                        "WrapVertically",
-                        "SameEffectAsPreviousLayer",
-                        "", "", "",
-                        "", "", "", "", "",
-                        "Redraw",
-                        "ToHide",
-                        "ToShow"
+            "XCoefficient",
+            "YCoefficient",
+            "DoNotSaveBackground",
+            "",
+            "Visible",
+            "WrapHorizontally",
+            "WrapVertically",
+            "", "", "", "",
+            "", "", "", "", "",
+            "Redraw",
+            "ToHide",
+            "ToShow"
         }
 
         );
@@ -366,7 +423,25 @@ case 13132: // Unknown
             BackgroudIndex = reader.ReadInt32();
             if (Settings.Fusion3Seed) reader.Skip(6);
             Name = reader.ReadYuniversal();
+            if (Settings.Android)
+            {
+                XCoeff = 1;
+                YCoeff = 1;
+            }
         }
+
+        public override void Write(ByteWriter Writer)
+        {
+            Writer.WriteInt32((int)Flags.flag);
+            Writer.WriteSingle(XCoeff);
+            Writer.WriteSingle(YCoeff);
+            Writer.WriteInt32(NumberOfBackgrounds);
+            Writer.WriteInt32(BackgroudIndex);
+            Writer.WriteUnicode(Name);
+        }
+
+
+
     }
 
     public class FramePalette : ChunkLoader
@@ -381,5 +456,15 @@ case 13132: // Unknown
                 Items.Add(reader.ReadColor());
             }
         }
+
+        public override void Write(ByteWriter Writer)
+        {
+            foreach (Color item in Items)
+            {
+                Writer.WriteColor(item);
+            }
+        }
+
     }
+
 }

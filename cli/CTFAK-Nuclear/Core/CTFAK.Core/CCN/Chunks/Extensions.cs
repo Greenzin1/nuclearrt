@@ -1,4 +1,4 @@
-using CTFAK.Memory;
+﻿using CTFAK.Memory;
 using CTFAK.Utils;
 using System;
 using System.Collections.Generic;
@@ -14,8 +14,12 @@ namespace CTFAK.CCN.Chunks
         internal ushort PreloadExtensions;
         public List<Extension> Items;
 
+
+
+
         public override void Read(ByteReader reader)
         {
+ 
             var count = reader.ReadUInt16();
             PreloadExtensions = reader.ReadUInt16();
             Items = new List<Extension>();
@@ -26,8 +30,21 @@ namespace CTFAK.CCN.Chunks
                 Items.Add(ext);
             }
         }
-    }
 
+        public override void Write(ByteWriter Writer)
+        {
+            Writer.WriteInt16((short)Items.Count);
+            Writer.WriteInt16((short)PreloadExtensions);
+            foreach (Extension item in Items)
+            {
+
+                item.Write(Writer);
+            }
+
+        }
+
+
+    }
     public class Extension : ChunkLoader
     {
         public short Handle;
@@ -37,6 +54,7 @@ namespace CTFAK.CCN.Chunks
         public string Name = "";
         public string Ext;
         public string SubType = "";
+
 
         public override void Read(ByteReader reader)
         {
@@ -48,7 +66,7 @@ namespace CTFAK.CCN.Chunks
             VersionLs = reader.ReadInt32();
             VersionMs = reader.ReadInt32();
             var extName = reader.ReadYuniversal();
-            if (extName.Length == 0)
+            if(extName.Length==0)
             {
 
                 reader.Seek(currentPosition + size);
@@ -68,5 +86,20 @@ namespace CTFAK.CCN.Chunks
             newString += $"VersionMs={VersionMs}\n";
             newString += $"SubType={SubType}\n";
         }
+
+        public override void Write(ByteWriter Writer)
+        {
+            var newWriter = new ByteWriter(new MemoryStream());
+            newWriter.WriteInt16(Handle);
+            newWriter.WriteInt32(MagicNumber);
+            newWriter.WriteInt32(VersionLs);
+            newWriter.WriteInt32(VersionMs);
+            newWriter.WriteUnicode(string.Join(".", new string[] { Name, Ext }));
+            newWriter.WriteUnicode(SubType);
+            Writer.WriteInt16((short)(newWriter.Size() + 2));
+            Writer.WriteWriter(newWriter);
+        }
+
+
     }
 }
