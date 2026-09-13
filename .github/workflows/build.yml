@@ -198,14 +198,9 @@ jobs:
               c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
               c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
               c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
-              # Replace std::ceil/floor/round with MathHelper versions that accept CValue
               c = c.replace('std::ceil(', 'MathHelper::ceil(')
               c = c.replace('std::floor(', 'MathHelper::floor(')
               c = c.replace('std::round(', 'MathHelper::round(')
-              # Fix SetCurrentSequenceIndex(CValue) -> needs int: wrap CValue args in .GetIntValue()
-              # Pattern: ->SetCurrentSequenceIndex(expr) where expr contains CValue
-              c = re.sub(r'->SetCurrentSequenceIndex\(([^)]+)\)', lambda m: f'->SetCurrentSequenceIndex({m.group(1)}.GetIntValue())' if 'GetIntValue' not in m.group(1) else m.group(0), c)
-              # Fix ->SetValue(N, CValue_expr) where N is int - these take CValue so OK
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
           for f in glob.glob('runtime/include/ObjectFactory.h'):
@@ -218,6 +213,41 @@ jobs:
               c = c.replace('std::round(', 'MathHelper::round(')
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
+
+          # Fix SetCurrentSequenceIndex(CValue) -> needs int
+          # Use balanced-paren parser to wrap the arg in static_cast<int>(...)
+          def fix_set_current_seq(content):
+              result = []
+              i = 0
+              while i < len(content):
+                  marker = '->SetCurrentSequenceIndex('
+                  pos = content.find(marker, i)
+                  if pos == -1:
+                      result.append(content[i:])
+                      break
+                  result.append(content[i:pos + len(marker)])
+                  # find balanced closing paren
+                  depth = 1
+                  start = pos + len(marker)
+                  j = start
+                  while j < len(content) and depth > 0:
+                      if content[j] == '(': depth += 1
+                      elif content[j] == ')': depth -= 1
+                      j += 1
+                  arg = content[start:j-1]
+                  if 'GetIntValue' not in arg and 'StaticInt' not in arg:
+                      result.append(f'static_cast<int>({arg})')
+                  else:
+                      result.append(arg)
+                  i = j
+              return ''.join(result)
+
+          for f in glob.glob('runtime/source/Generated*.cpp'):
+              with open(f) as fh: c = fh.read()
+              if 'SetCurrentSequenceIndex' in c:
+                  c = fix_set_current_seq(c)
+                  with open(f, 'w') as fh: fh.write(c)
+                  print(f'Fixed SetCurrentSequenceIndex in {f}')
           "
 
       - name: Patch for Emscripten
