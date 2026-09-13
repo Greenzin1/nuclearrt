@@ -48,7 +48,7 @@ jobs:
           $imgContent | Set-Content $img
           $agi = "ctfak/Core/CTFAK.Core/MFA/AGMIBank.cs"
           $agiContent = Get-Content $agi -Raw
-          $agiContent = $agiContent.Replace("foreach (var task in _imageWriteTasks) task.Wait();", "foreach (var task in _imageWriteTasks) { try { task.Wait(); } catch (Exception ex) { Console.WriteLine('AGMI overflow: ' + ex.Message); } }")
+          $agiContent = $agiContent.Replace("foreach (var task in _imageWriteTasks) task.Wait();", 'foreach (var task in _imageWriteTasks) { try { task.Wait(); } catch (Exception ex) { Console.WriteLine("AGMI overflow: " + ex.Message); } }')
           $agiContent | Set-Content $agi
 
       - name: Build CTFAK 2.0
