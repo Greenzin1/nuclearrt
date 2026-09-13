@@ -378,18 +378,27 @@ namespace CTFAK.CCN.Chunks.Frame
             act.Num = num;
         }
     }
-    public class Condition : ChunkLoader
+    public class EventBase : ChunkLoader
     {
         public int Flags;
         public int OtherFlags;
         public int DefType;
-        public int NumberOfParameters;
         public int ObjectType;
         public int Num;
         public int ObjectInfo;
-        public int Identifier;
         public int ObjectInfoList;
+        public byte NumberOfParameters;
         public List<Parameter> Items = new List<Parameter>();
+
+        public override void Read(ByteReader reader)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class Condition : EventBase
+    {
+        public int Identifier;
 
         public override void Write(ByteWriter Writer)
         {
@@ -446,17 +455,8 @@ namespace CTFAK.CCN.Chunks.Frame
         }
     }
 
-    public class Action : ChunkLoader
+    public class Action : EventBase
     {
-        public int Flags;
-        public int OtherFlags;
-        public int DefType;
-        public int ObjectType;
-        public int Num;
-        public int ObjectInfo;
-        public int ObjectInfoList;
-        public List<Parameter> Items = new List<Parameter>();
-        public byte NumberOfParameters;
         public override void Write(ByteWriter Writer)
         {
             ByteWriter newWriter = new ByteWriter(new MemoryStream());
