@@ -165,7 +165,8 @@ public class EventProcessor
 				var instance = Activator.CreateInstance(acBaseType) as ConditionBase;
 				//instance.IsGlobal = evt.IsGlobal;
 				string ifStatement = (condition.OtherFlags & 1) == 0 ? "if (!" : "if (";
-				result.AppendLine(instance?.Build(condition, ref nextLabel, ref orConditionIndex, parameters, ifStatement));
+				try { result.AppendLine(instance?.Build(condition, ref nextLabel, ref orConditionIndex, parameters, ifStatement)); }
+				catch (Exception ex) { Logger.Log($"Condition build failed ({condition.ObjectType},{condition.Num}): {ex.Message}"); }
 			}
 
 			result.AppendLine($"{idName}_actions:;");
@@ -215,7 +216,8 @@ public class EventProcessor
 
 				var instance = Activator.CreateInstance(acBaseType) as ActionBase;
 				//instance.IsGlobal = evt.IsGlobal;
-				result.AppendLine(instance?.Build(action, ref nextLabel, ref orConditionIndex, parameters, ""));
+				try { result.AppendLine(instance?.Build(action, ref nextLabel, ref orConditionIndex, parameters, "")); }
+				catch (Exception ex) { Logger.Log($"Action build failed ({action.ObjectType},{action.Num}): {ex.Message}"); }
 			}
 
 			if (hasChildren)

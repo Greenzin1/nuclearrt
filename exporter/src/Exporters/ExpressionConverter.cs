@@ -542,7 +542,15 @@ public class ExpressionConverter
 
 			if (expressionsLookup.TryGetValue(((ObjectType)expression.ObjectType, expression.Num), out var generator))
 			{
-				result.Append(generator(expression));
+				try
+				{
+					result.Append(generator(expression));
+				}
+				catch (Exception ex)
+				{
+					Logger.Log($"Expression lookup failed for ({expression.ObjectType},{expression.Num}): {ex.Message}");
+					result.Append($"CValue(0)");
+				}
 				continue;
 			}
 
