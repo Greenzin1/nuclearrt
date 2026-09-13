@@ -37,7 +37,7 @@ namespace CTFAK.Core.CCN.Chunks.Banks.ImageBank
             for (var i = 0; i < count; i++)
             {
                 var newImg = CreateImage();
-                newImg.Read(reader);
+                try { newImg.Read(reader); } catch { Logger.Log($"Image {i} read failed, skipping"); continue; }
                 OnImageLoaded?.Invoke(i, count);
                 Items.Add(newImg.Handle, newImg);
 				bankHash += newImg.Checksum;
@@ -46,7 +46,7 @@ namespace CTFAK.Core.CCN.Chunks.Banks.ImageBank
                     break;
             }
 
-            foreach (var task in imageReadingTasks) task.Wait();
+            foreach (var task in imageReadingTasks) { try { task.Wait(); } catch { } }
             imageReadingTasks.Clear();
         }
     }
