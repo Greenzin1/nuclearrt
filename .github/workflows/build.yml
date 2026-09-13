@@ -176,12 +176,13 @@ jobs:
           cv = 'runtime/include/CValue.h'
           with open(cv) as f: c = f.read()
           if 'operator int()' not in c:
-              # Add before the closing brace of the class
               c = c.replace(
-                  '    void DebugPrint()',
-                  '    operator int() const { return GetIntValue(); }\n    operator double() const { return GetDoubleValue(); }\n    operator bool() const { return GetIntValue() != 0; }\n    void DebugPrint()')
+                  '    void ConvertToString()',
+                  '    operator int() const { return GetIntValue(); }\n    operator double() const { return GetDoubleValue(); }\n    void ConvertToString()')
               with open(cv, 'w') as f: f.write(c)
               print('Fixed CValue.h - added implicit conversions')
+          else:
+              print('CValue.h already has operator int')
 
           # Fix MathHelper.h - add missing CValue overloads
           mh = 'runtime/include/MathHelper.h'
