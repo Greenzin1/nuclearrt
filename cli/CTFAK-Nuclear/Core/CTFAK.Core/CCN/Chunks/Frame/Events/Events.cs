@@ -394,6 +394,7 @@ namespace CTFAK.CCN.Chunks.Frame
         {
             throw new NotImplementedException();
         }
+        public override void Write(ByteWriter writer) { }
     }
 
     public class Condition : EventBase
