@@ -172,17 +172,15 @@ jobs:
           python3 -c "
           import glob, re
 
-          # Fix CValue.h - add implicit conversion operators for generated code compatibility
+          # Fix CValue.h - add static_cast helpers (not implicit conversions to avoid ambiguity)
           cv = 'runtime/include/CValue.h'
           with open(cv) as f: c = f.read()
-          if 'operator int()' not in c:
+          if 'StaticInt' not in c:
               c = c.replace(
                   '    void ConvertToString()',
-                  '    operator int() const { return GetIntValue(); }\n    operator double() const { return GetDoubleValue(); }\n    void ConvertToString()')
+                  '    static inline int StaticInt(const CValue& v) { return v.GetIntValue(); }\n    static inline double StaticDouble(const CValue& v) { return v.GetDoubleValue(); }\n    void ConvertToString()')
               with open(cv, 'w') as f: f.write(c)
-              print('Fixed CValue.h - added implicit conversions')
-          else:
-              print('CValue.h already has operator int')
+              print('Fixed CValue.h - added static helpers')
 
           # Fix MathHelper.h - add missing CValue overloads
           mh = 'runtime/include/MathHelper.h'
@@ -204,6 +202,10 @@ jobs:
               c = c.replace('std::ceil(', 'MathHelper::ceil(')
               c = c.replace('std::floor(', 'MathHelper::floor(')
               c = c.replace('std::round(', 'MathHelper::round(')
+              # Fix SetCurrentSequenceIndex(CValue) -> needs int: wrap CValue args in .GetIntValue()
+              # Pattern: ->SetCurrentSequenceIndex(expr) where expr contains CValue
+              c = re.sub(r'->SetCurrentSequenceIndex\(([^)]+)\)', lambda m: f'->SetCurrentSequenceIndex({m.group(1)}.GetIntValue())' if 'GetIntValue' not in m.group(1) else m.group(0), c)
+              # Fix ->SetValue(N, CValue_expr) where N is int - these take CValue so OK
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
           for f in glob.glob('runtime/include/ObjectFactory.h'):
