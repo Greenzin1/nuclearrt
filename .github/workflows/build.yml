@@ -234,7 +234,7 @@ jobs:
                       elif content[j] == ')': depth -= 1
                       j += 1
                   arg = content[paren_start + 1:j - 1]
-                  if 'CValue' in arg:
+                  if 'CValue' in arg and not arg.rstrip().endswith('.GetIntValue()') and not arg.rstrip().endswith('.GetDoubleValue()'):
                       result.append(f'{arg}.GetIntValue())')
                   else:
                       result.append(arg + ')')
