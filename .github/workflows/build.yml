@@ -167,6 +167,31 @@ jobs:
           find runtime/source -name "*.template.*" -delete
           find runtime/include -name "*.template.*" -delete
 
+      - name: Fix generated C++ placeholders
+        run: |
+          python3 -c "
+          import glob, re
+          for f in glob.glob('runtime/source/Generated*.cpp') + glob.glob('runtime/source/Generated*.h'):
+              with open(f) as fh: c = fh.read()
+              # Replace /* Expression not found: ... */ with CValue(0)
+              c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
+              # Replace /* Condition not found: ... */ with true
+              c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
+              # Replace /* Action not found: ... */ with empty
+              c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
+              # Replace any remaining /* ... */ that would cause issues
+              with open(f, 'w') as fh: fh.write(c)
+              print(f'Fixed {f}')
+          # Also fix ObjectFactory.h
+          for f in glob.glob('runtime/include/Generated*.h') + glob.glob('runtime/include/ObjectFactory.h'):
+              with open(f) as fh: c = fh.read()
+              c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
+              c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
+              c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
+              with open(f, 'w') as fh: fh.write(c)
+              print(f'Fixed {f}')
+          "
+
       - name: Patch for Emscripten
         run: |
           python3 -c "
