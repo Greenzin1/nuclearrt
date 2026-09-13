@@ -98,12 +98,12 @@ jobs:
           $mfa = "${{ steps.find-mfa.outputs.mfa_path }}"
           Copy-Item $mfa "input.mfa" -Force
           $cliDir = "cli\bin\Release\net9.0-windows\publish"
-          $ctfak2dll = "ctfak\Core\CTFAK.Core\bin\Release\net6.0-windows\publish\CTFAK.Core.dll"
+          $ctfak2dll = "ctfak\Interface\CTFAK.Cli\bin\Release\net6.0-windows\publish\CTFAK.Core.dll"
           if (Test-Path $ctfak2dll) {
             Copy-Item $ctfak2dll "$cliDir\CTFAK.Core.dll" -Force
             Write-Host "Swapped CTFAK.Core.dll with CTFAK 2.0 version"
           }
-          $cliDir\cli.exe SourceCode input.mfa output
+          & "$cliDir\cli.exe" SourceCode input.mfa output
 
       - name: Upload exported data
         uses: actions/upload-artifact@v4
