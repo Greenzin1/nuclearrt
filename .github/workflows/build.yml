@@ -225,10 +225,8 @@ jobs:
                   if pos == -1:
                       result.append(content[i:])
                       break
-                  # find the opening paren
                   paren_start = pos + len('SetCurrentSequenceIndex')
                   result.append(content[i:paren_start + 1])
-                  # find balanced closing paren
                   depth = 1
                   j = paren_start + 1
                   while j < len(content) and depth > 0:
@@ -236,7 +234,10 @@ jobs:
                       elif content[j] == ')': depth -= 1
                       j += 1
                   arg = content[paren_start + 1:j - 1]
-                  result.append(f'{arg}).GetIntValue()')
+                  if 'CValue' in arg:
+                      result.append(f'{arg}.GetIntValue())')
+                  else:
+                      result.append(arg + ')')
                   i = j
               return ''.join(result)
 
