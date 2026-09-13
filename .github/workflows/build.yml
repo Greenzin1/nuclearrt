@@ -43,7 +43,7 @@ jobs:
           $progContent | Set-Content $prog
           $img = "ctfak/Core/CTFAK.Core/CCN/Chunks/Banks/ImageBank/ImageBank.cs"
           $imgContent = Get-Content $img -Raw
-          $imgContent = $imgContent.Replace("newImg.Read(reader);", "try { newImg.Read(reader); } catch (Exception ex) { Console.WriteLine('Image overflow: ' + ex.Message); }")
+          $imgContent = $imgContent.Replace("newImg.Read(reader);", 'try { newImg.Read(reader); } catch (Exception ex) { Console.WriteLine("Image overflow: " + ex.Message); }')
           $imgContent = $imgContent.Replace("foreach (var task in imageReadingTasks) task.Wait();", "foreach (var task in imageReadingTasks) { try { task.Wait(); } catch { } }")
           $imgContent | Set-Content $img
           $agi = "ctfak/Core/CTFAK.Core/MFA/AGMIBank.cs"
