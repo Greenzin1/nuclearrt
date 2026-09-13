@@ -61,13 +61,20 @@ public class PakBuilder
 		}
 
 		//collision masks
-		var collisionMasks = CollisionMaskBuilder.BuildCollisionMask(gameData);
-		foreach (var mask in collisionMasks)
+		try
 		{
-			var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin" };
-			entry.Size = (uint)mask.Data.Length;
-			entry.Data = mask.Data;
-			mainPak.AddEntry(entry);
+			var collisionMasks = CollisionMaskBuilder.BuildCollisionMask(gameData);
+			foreach (var mask in collisionMasks)
+			{
+				var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin" };
+				entry.Size = (uint)mask.Data.Length;
+				entry.Data = mask.Data;
+				mainPak.AddEntry(entry);
+			}
+		}
+		catch (Exception ex)
+		{
+			Logger.Log($"Collision mask generation failed: {ex.Message}");
 		}
 
 		//sounds

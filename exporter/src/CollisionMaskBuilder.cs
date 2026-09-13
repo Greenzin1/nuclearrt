@@ -20,33 +20,38 @@ public class CollisionMaskBuilder
 
 		foreach (var image in gameData.Images.Items.Values)
 		{
-			var collisionMask = new CollisionMask { Handle = image.Handle };
-			Bitmap bitmap = image.bitmap;
-			BinaryWriter writer = new BinaryWriter(new MemoryStream());
-			
-			for (int y = 0; y < image.Height; y++)
+			try
 			{
-				for (int x = 0; x < image.Width; x += 8)
+				var collisionMask = new CollisionMask { Handle = image.Handle };
+				Bitmap bitmap = image.bitmap;
+				if (bitmap == null) continue;
+				BinaryWriter writer = new BinaryWriter(new MemoryStream());
+				
+				for (int y = 0; y < image.Height; y++)
 				{
-					byte mask = 0;
-					for (int i = 0; i < 8; i++)
+					for (int x = 0; x < image.Width; x += 8)
 					{
-						if (x + i < image.Width)
+						byte mask = 0;
+						for (int i = 0; i < 8; i++)
 						{
-							bool isSolid = bitmap.GetPixel(x + i, y).A > ALPHA_THRESHOLD;
-							if (isSolid)
+							if (x + i < image.Width)
 							{
-								mask |= (byte)(1 << (7 - i));
+								bool isSolid = bitmap.GetPixel(x + i, y).A > ALPHA_THRESHOLD;
+								if (isSolid)
+								{
+									mask |= (byte)(1 << (7 - i));
+								}
 							}
 						}
+						writer.Write(mask);
 					}
-					writer.Write(mask);
 				}
-			}
 
-			collisionMask.Data = ((MemoryStream)writer.BaseStream).ToArray();
-			collisionMasks.Add(collisionMask);
-			writer.Dispose();
+				collisionMask.Data = ((MemoryStream)writer.BaseStream).ToArray();
+				collisionMasks.Add(collisionMask);
+				writer.Dispose();
+			}
+			catch { }
 		}
 
 		return collisionMasks;
