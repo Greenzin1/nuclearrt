@@ -53,7 +53,7 @@ public class FrameExporter : BaseExporter
 				Logger.Log($"Frame {i} failed: {ex.Message}");
 				// Write minimal stub files so compilation still works
 				var stubHeader = $"#pragma once\n#include \"Frame.h\"\n#include \"ObjectFactory.h\"\nstruct GeneratedFrame{i} : public Frame {{ GeneratedFrame{i}(); }};\n";
-				var stubCpp = $"#include \"GeneratedFrame{i}.h\"\nGeneratedFrame{i}::GeneratedFrame{i}() {{ width=320; height=240; }}\n";
+				var stubCpp = $"#include \"GeneratedFrame{i}.h\"\nGeneratedFrame{i}::GeneratedFrame{i}() {{ Width=320; Height=240; }}\n";
 				SaveFile(Path.Combine(OutputPath.FullName, "include", $"GeneratedFrame{i}.h"), stubHeader);
 				SaveFile(Path.Combine(OutputPath.FullName, "source", $"GeneratedFrame{i}.cpp"), stubCpp);
 			}
