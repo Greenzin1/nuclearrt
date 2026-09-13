@@ -2,6 +2,7 @@ using CTFAK.EXE;
 using CTFAK.CCN;
 using CTFAK.CCN.Chunks;
 using CTFAK.Core.CCN.Chunks;
+using CTFAK.FileReaders;
 using CTFAK.MFA;
 using CTFAK.Memory;
 using CTFAK.Utils;
