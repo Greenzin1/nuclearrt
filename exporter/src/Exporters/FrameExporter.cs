@@ -50,7 +50,7 @@ public class FrameExporter : BaseExporter
 			}
 			catch (Exception ex)
 			{
-				Logger.Log($"Frame {i} failed: {ex.Message}");
+				Logger.Log($"Frame {i} failed: {ex.Message}\n{ex.StackTrace}");
 				// Write minimal stub files so compilation still works
 				var stubHeader = $"#pragma once\n#include \"Frame.h\"\n#include \"ObjectFactory.h\"\nstruct GeneratedFrame{i} : public Frame {{ GeneratedFrame{i}(); }};\n";
 				var stubCpp = $"#include \"GeneratedFrame{i}.h\"\nGeneratedFrame{i}::GeneratedFrame{i}() {{ Width=320; Height=240; }}\n";
