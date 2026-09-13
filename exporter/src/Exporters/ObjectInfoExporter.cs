@@ -147,20 +147,23 @@ public class ObjectInfoExporter : BaseExporter
 				// FIXME: afaik their isn't a way to check if the object is global in the ccn's object info ( the preference flag does not change )
 				// this is probably terrible and might lead to incorrect results, but it's the best i can do for now
 				bool isGlobal = false;
-				foreach (var frame in Exporter.Instance.MfaData.Frames)
+				if (Exporter.Instance.MfaData?.Frames != null)
 				{
-					foreach (var obj in frame.Items)
+					foreach (var frame in Exporter.Instance.MfaData.Frames)
 					{
-						if (obj.Name != objectInfo.name || obj.ObjectType != objectInfo.ObjectType) continue;
-
-						if ((obj.Flags & 4) == 4)
+						foreach (var obj in frame.Items)
 						{
-							isGlobal = true;
-							break;
-						}
-					}
+							if (obj.Name != objectInfo.name || obj.ObjectType != objectInfo.ObjectType) continue;
 
-					if (isGlobal) break;
+							if ((obj.Flags & 4) == 4)
+							{
+								isGlobal = true;
+								break;
+							}
+						}
+
+						if (isGlobal) break;
+					}
 				}
 
 				result.AppendLine($"instance->global = {isGlobal.ToString().ToLower()};");
