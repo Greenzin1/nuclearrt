@@ -90,33 +90,6 @@ jobs:
             exit 1
           }
 
-      - name: Swap CTFAK-Nuclear with CTFAK 2.0 Core
-        shell: pwsh
-        run: |
-          # Remove old CTFAK-Nuclear source, replace with CTFAK 2.0's Core
-          Remove-Item -Recurse -Force "cli\CTFAK-Nuclear\Core\CTFAK.Core"
-          Copy-Item -Recurse "ctfak\Core\CTFAK.Core" "cli\CTFAK-Nuclear\Core\CTFAK.Core"
-          # Patch CTFAK 2.0 ImageBank for overflow
-          $img = "cli\CTFAK-Nuclear\Core\CTFAK.Core\CCN\Chunks\Banks\ImageBank\ImageBank.cs"
-          if (Test-Path $img) {
-            $c = Get-Content $img -Raw
-            $c = $c.Replace("newImg.Read(reader);", 'try { newImg.Read(reader); } catch { }')
-            $c = $c.Replace("foreach (var task in imageReadingTasks) task.Wait();", 'foreach (var task in imageReadingTasks) { try { task.Wait(); } catch { } }')
-            Set-Content $img $c
-          }
-          # Patch AGMIBank
-          $agi = "cli\CTFAK-Nuclear\Core\CTFAK.Core\MFA\AGMIBank.cs"
-          if (Test-Path $agi) {
-            $c = Get-Content $agi -Raw
-            $c = $c.Replace("foreach (var task in _imageWriteTasks) task.Wait();", 'foreach (var task in _imageWriteTasks) { try { task.Wait(); } catch { } }')
-            Set-Content $agi $c
-          }
-          Write-Host "Swapped CTFAK-Nuclear Core with CTFAK 2.0 Core"
-
-      - name: Rebuild CLI with CTFAK 2.0
-        working-directory: cli
-        run: dotnet publish -c Release
-
       - name: Export with NuclearRT
         shell: pwsh
         run: |
@@ -124,7 +97,13 @@ jobs:
           New-Item -ItemType Directory -Force -Path $fontsDir | Out-Null
           $mfa = "${{ steps.find-mfa.outputs.mfa_path }}"
           Copy-Item $mfa "input.mfa" -Force
-          cli\bin\Release\net9.0-windows\publish\cli.exe SourceCode input.mfa output
+          $cliDir = "cli\bin\Release\net9.0-windows\publish"
+          $ctfak2dll = "ctfak\Core\CTFAK.Core\bin\Release\net6.0-windows\publish\CTFAK.Core.dll"
+          if (Test-Path $ctfak2dll) {
+            Copy-Item $ctfak2dll "$cliDir\CTFAK.Core.dll" -Force
+            Write-Host "Swapped CTFAK.Core.dll with CTFAK 2.0 version"
+          }
+          $cliDir\cli.exe SourceCode input.mfa output
 
       - name: Upload exported data
         uses: actions/upload-artifact@v4
