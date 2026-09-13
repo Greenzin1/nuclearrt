@@ -215,27 +215,28 @@ jobs:
               print(f'Fixed {f}')
 
           # Fix SetCurrentSequenceIndex(CValue) -> needs int
-          # Use balanced-paren parser to wrap the arg in static_cast<int>(...)
+          # Use balanced-paren parser to wrap the arg in .GetIntValue()
           def fix_set_current_seq(content):
+              content = content.replace('\r\n', '\n').replace('\r', '\n')
               result = []
               i = 0
               while i < len(content):
-                  marker = '->SetCurrentSequenceIndex('
-                  pos = content.find(marker, i)
+                  pos = content.find('SetCurrentSequenceIndex(', i)
                   if pos == -1:
                       result.append(content[i:])
                       break
-                  result.append(content[i:pos + len(marker)])
+                  # find the opening paren
+                  paren_start = pos + len('SetCurrentSequenceIndex')
+                  result.append(content[i:paren_start + 1])
                   # find balanced closing paren
                   depth = 1
-                  start = pos + len(marker)
-                  j = start
+                  j = paren_start + 1
                   while j < len(content) and depth > 0:
                       if content[j] == '(': depth += 1
                       elif content[j] == ')': depth -= 1
                       j += 1
-                  arg = content[start:j-1]
-                  result.append(f'({arg}).GetIntValue()')
+                  arg = content[paren_start + 1:j - 1]
+                  result.append(f'{arg}).GetIntValue()')
                   i = j
               return ''.join(result)
 
