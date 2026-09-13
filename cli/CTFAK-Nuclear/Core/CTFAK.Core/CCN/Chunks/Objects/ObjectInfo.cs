@@ -1,4 +1,4 @@
-﻿using CTFAK.Memory;
+using CTFAK.Memory;
 using CTFAK.Utils;
 using System;
 using System.Collections.Generic;
@@ -51,8 +51,8 @@ namespace CTFAK.CCN.Chunks.Objects
                 if (CTFAKCore.parameters.Contains("-onlyimages"))
                 {
                     if (newChunk.Id != 17476 && // Header
-                        newChunk.Id != 17477 && // Name
-                        newChunk.Id != 17478)   // Properties
+                            newChunk.Id != 17477 && // Name
+                            newChunk.Id != 17478)   // Properties
                         continue;
                 }
                 if (newChunk.Id == 32639) break;
@@ -72,7 +72,7 @@ namespace CTFAK.CCN.Chunks.Objects
                             var g = chunkReader.ReadByte();
                             var b = chunkReader.ReadByte();
                             rgbCoeff = Color.FromArgb(0, b, g, r);
-                            blend = chunkReader.ReadByte();
+                            blend = (byte)(255 - chunkReader.ReadByte());
                         }
                         else
                         {
@@ -91,7 +91,7 @@ namespace CTFAK.CCN.Chunks.Objects
                     case 17477:
                         name = chunkReader.ReadYuniversal();
                         break;
-                    case 17478:        
+                    case 17478:
                         if (ObjectType == 0) properties = new Quickbackdrop();
                         else if (ObjectType == 1) properties = new Backdrop();
                         else properties = new ObjectCommon(this);
@@ -103,58 +103,32 @@ namespace CTFAK.CCN.Chunks.Objects
                         {
                             var shaderHandle = chunkReader.ReadInt32();
                             var numberOfParams = chunkReader.ReadInt32();
-                            var shdr = CTFAKCore.currentReader.getGameData().shaders.ShaderList[shaderHandle];
-                            shaderData.name = shdr.Name;
                             shaderData.ShaderHandle = shaderHandle;
                             shaderData.hasShader = true;
 
                             for (int i = 0; i < numberOfParams; i++)
                             {
-                                var param = shdr.Parameters[i];
-                                object paramValue;
-                                switch (param.Type)
-                                {
-                                    case 0:
-                                        paramValue = chunkReader.ReadInt32();
-                                        break;
-                                    case 1:
-                                        paramValue = chunkReader.ReadSingle();
-                                        break;
-                                    case 2:
-                                        paramValue = chunkReader.ReadInt32();
-                                        break;
-                                    case 3:
-                                        paramValue = chunkReader.ReadInt32(); //Image Handle
-                                        break;
-                                    default:
-                                        paramValue = "unknownType";
-                                        break;
-                                }
                                 shaderData.parameters.Add(new ShaderParameter()
                                 {
-                                    Name = param.Name,
-                                    ValueType = param.Type,
-                                    Value = paramValue
+                                    Name = "unk",
+                                    ValueType = 0,
+                                    Value = chunkReader.ReadBytes(4)
                                 });
                             }
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            Logger.Log("Error reading shader data for object " + name + ": " + ex.StackTrace, true, ConsoleColor.Red);
                             shaderData.hasShader = false;
                         }
                         break;
                     default:
-                        Logger.Log("No Reader for ObjectInfo Chunk " + newChunk.Id);
+                        //Logger.Log("No Reader for ObjectInfo Chunk " + newChunk.Id);
                         if (CTFAKCore.parameters.Contains("-dumpnewchunks"))
                             File.WriteAllBytes("UnkChunks\\ObjectInfo\\" + newChunk.Id + ".bin", chunkReader.ReadBytes());
                         break;
                 }
             }
-        }
-
-        public override void Write(ByteWriter writer)
-        {
-            throw new NotImplementedException();
         }
     }
 }

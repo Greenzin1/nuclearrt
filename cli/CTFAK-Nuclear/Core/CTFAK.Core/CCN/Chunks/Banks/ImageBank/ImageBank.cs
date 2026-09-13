@@ -1,4 +1,4 @@
-﻿using CTFAK.CCN.Chunks;
+using CTFAK.CCN.Chunks;
 using CTFAK.Memory;
 using CTFAK.Utils;
 using System;
@@ -18,19 +18,12 @@ namespace CTFAK.Core.CCN.Chunks.Banks.ImageBank
         public Dictionary<int, FusionImage> Items = new();
         public static event SaveHandler OnImageLoaded;
 
+		public string bankHash = "";
 
         public static FusionImage CreateImage()
         {
-            if (Settings.Android)
-                return new AndroidImage();
             if (Settings.TwoFivePlus)
                 return new TwoFivePlusImage();
-            if (Settings.F3 && !Settings.Fusion3Seed)
-                return new TwoFivePlusImage();
-            if (Settings.F3 && Settings.Fusion3Seed)
-                return new TwoFivePlusImage();
-            if (Settings.Old)
-                return new MMFImage();
             return new NormalImage();
         }
         public override void Read(ByteReader reader)
@@ -39,36 +32,22 @@ namespace CTFAK.Core.CCN.Chunks.Banks.ImageBank
             // This comment doesn't belong here, but I'm still keeping it
             if (CTFAKCore.parameters.Contains("-noimg")) return;
 
-            var count = 0;
-
-            if (Settings.Android)
-            {
-                var maxHandle = reader.ReadInt16();
-                count = reader.ReadInt16();
-            }
-            else
-            {
-                count = reader.ReadInt32();
-            }
+            var count = reader.ReadInt32();
 
             for (var i = 0; i < count; i++)
             {
                 var newImg = CreateImage();
-                newImg.Read(reader);
+                try { newImg.Read(reader); } catch { Logger.Log($"Image {i} read failed, skipping"); continue; }
                 OnImageLoaded?.Invoke(i, count);
                 Items.Add(newImg.Handle, newImg);
+				bankHash += newImg.Checksum;
 
                 if (reader.Tell() >= reader.Size())
                     break;
             }
 
-            foreach (var task in imageReadingTasks) task.Wait();
+            foreach (var task in imageReadingTasks) { try { task.Wait(); } catch { } }
             imageReadingTasks.Clear();
-        }
-
-        public override void Write(ByteWriter writer)
-        {
-            throw new NotImplementedException();
         }
     }
 }
