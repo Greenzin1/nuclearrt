@@ -235,10 +235,7 @@ jobs:
                       elif content[j] == ')': depth -= 1
                       j += 1
                   arg = content[start:j-1]
-                  if 'GetIntValue' not in arg and 'StaticInt' not in arg:
-                      result.append(f'static_cast<int>({arg})')
-                  else:
-                      result.append(arg)
+                  result.append(f'static_cast<int>({arg})')
                   i = j
               return ''.join(result)
 
