@@ -217,7 +217,7 @@ jobs:
           embuilder build freetype
           mkdir -p build/web
           cd build/web
-          emcmake cmake ../../runtime -DCMAKE_BUILD_TYPE=Release -DPLATFORM_BACKEND=SDL2 -DBUILD_SHARED_LIBS=OFF -DSDL_SHARED=OFF -DCMAKE_C_FLAGS="-sUSE_FREETYPE" -DCMAKE_CXX_FLAGS="-sUSE_FREETYPE" -DCMAKE_EXE_LINKER_FLAGS="-sUSE_FREETYPE" -G Ninja
+          emcmake cmake ../../runtime -DCMAKE_BUILD_TYPE=Release -DPLATFORM_BACKEND=SDL2 -DBUILD_SHARED_LIBS=OFF -DSDL_SHARED=OFF -DCMAKE_C_FLAGS="-sUSE_FREETYPE" -DCMAKE_CXX_FLAGS="-sUSE_FREETYPE -Wno-c++11-narrowing" -DCMAKE_EXE_LINKER_FLAGS="-sUSE_FREETYPE" -G Ninja
           cmake --build .
 
       - name: Package Web Build
