@@ -172,31 +172,30 @@ jobs:
           python3 -c "
           import glob, re
 
-          # Fix CValue.h - add static_cast helpers and restore operator int()
+          # Fix CValue.h - add static helpers + restore operator int() for generated code
           cv = 'runtime/include/CValue.h'
           with open(cv) as f: c = f.read()
           if 'StaticInt' not in c:
               c = c.replace(
                   '    void ConvertToString()',
-                  '    static inline int StaticInt(const CValue& v) { return v.GetIntValue(); }\n    static inline double StaticDouble(const CValue& v) { return v.GetDoubleValue(); }\n    void ConvertToString()')
-              with open(cv, 'w') as f: f.write(c)
-              print('Fixed CValue.h - added static helpers')
-          # Restore operator int() for CTFAK-generated code (CValue arithmetic needs it)
+                  '    static inline int StaticInt(const CValue& v) { return v.GetIntValue(); }\n    static inline double StaticDouble(const CValue& v) { return v.GetDoubleValue(); }\n    static inline float StaticFloat(const CValue& v) { return (float)v.GetIntValue(); }\n    void ConvertToString()')
+          # Restore operator int() if missing
           if 'operator int()' not in c:
               c = c.replace(
                   '    void ConvertToString()',
                   '    operator int() const { return GetIntValue(); }\n    void ConvertToString()')
-              with open(cv, 'w') as f: f.write(c)
               print('Fixed CValue.h - restored operator int()')
-          # Remove operator float() to fix CValue + float ambiguity
-          import re as _re
-          c_before = c
-          c = _re.sub(r'\s*operator\s+float\s*\(\)\s*[^;]*;\s*\n?', '\n', c)
-          if c != c_before:
+          # Remove operator double() and operator float() to fix CValue + float ambiguity
+          # With only operator int(), CValue + float -> int + float (unambiguous)
+          c_before_d = c
+          c = _re.sub(r'[ \t]*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?\{[^}]*\}\n?', '', c)
+          c = _re.sub(r'[ \t]*operator\s+(double|float)\s*\([^)]*\)\s*(const\s*)?[^;{]*;', '', c)
+          if c != c_before_d:
               with open(cv, 'w') as f: f.write(c)
-              print('Fixed CValue.h - removed operator float() to fix ambiguity')
+              print('Fixed CValue.h - removed operator double/float to fix ambiguity')
           else:
-              print('CValue.h - no operator float() to remove')
+              with open(cv, 'w') as f: f.write(c)
+              print('CValue.h - no operator double/float found to remove')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
@@ -240,7 +239,8 @@ jobs:
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
 
-          # SetCurrentSequenceIndex handled by CValue overload in Animations.h
+          # SetCurrentSequenceIndex handled by CValue overload in Animations.h + operator int()
+
           "
 
       - name: Patch for Emscripten
