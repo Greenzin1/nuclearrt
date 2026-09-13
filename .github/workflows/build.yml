@@ -105,6 +105,29 @@ jobs:
           Copy-Item $exePath "input.exe" -Force
           & "$cliDir\cli.exe" SourceCode input.exe output
 
+      - name: Ensure runtime templates in output
+        shell: pwsh
+        run: |
+          # If Exporter failed, runtime include/source won't be in output
+          # Copy them directly from the repo's runtime directory
+          if (-not (Test-Path "output\include") -or -not (Get-ChildItem "output\include" -ErrorAction SilentlyContinue)) {
+            Write-Host "output/include is empty, copying from runtime..."
+            New-Item -ItemType Directory -Force -Path "output\include" | Out-Null
+            Copy-Item -Recurse "runtime\include\*" "output\include\"
+          }
+          if (-not (Test-Path "output\source") -or -not (Get-ChildItem "output\source" -ErrorAction SilentlyContinue)) {
+            Write-Host "output/source is empty, copying from runtime..."
+            New-Item -ItemType Directory -Force -Path "output\source" | Out-Null
+            Copy-Item -Recurse "runtime\source\*" "output\source\"
+          }
+          if (-not (Test-Path "output\copy") -or -not (Get-ChildItem "output\copy" -Recurse -ErrorAction SilentlyContinue)) {
+            Write-Host "output/copy is empty, copying from runtime..."
+            New-Item -ItemType Directory -Force -Path "output\copy" | Out-Null
+            Copy-Item -Recurse "runtime\copy\*" "output\copy\"
+          }
+          Write-Host "Output dirs:"
+          Get-ChildItem "output" -Directory | ForEach-Object { Write-Host "  $($_.Name) ($((Get-ChildItem $_.FullName -Recurse -File).Count) files)" }
+
       - name: Upload exported data
         uses: actions/upload-artifact@v4
         with:

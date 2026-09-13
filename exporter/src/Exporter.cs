@@ -55,15 +55,15 @@ public class Exporter
 		// copy runtime base path files to the output path
 		FileUtils.CopyFilesRecursively(RuntimeBasePath.FullName, OutputPath.FullName);
 
-		_projectFileExporter.Export();
-		_extensionFolderExporter.Export();
-		_appDataExporter.Export();
-		_objectInfoExporter.Export();
-		_imageBankExporter.Export();
-		_soundBankExporter.Export();
-		_fontBankExporter.Export();
-		_effectBankExporter.Export();
-		_frameExporter.Export();
-		_iconExporter.Export();
+		try { _projectFileExporter.Export(); } catch (Exception ex) { Logger.Log($"ProjectFileExporter failed: {ex.Message}"); }
+		try { _extensionFolderExporter.Export(); } catch (Exception ex) { Logger.Log($"ExtensionFolderExporter failed: {ex.Message}"); }
+		try { _appDataExporter.Export(); } catch (Exception ex) { Logger.Log($"AppDataExporter failed: {ex.Message}"); }
+		try { _objectInfoExporter.Export(); } catch (Exception ex) { Logger.Log($"ObjectInfoExporter failed: {ex.Message}"); }
+		try { _imageBankExporter.Export(); } catch (Exception ex) { Logger.Log($"ImageBankExporter failed: {ex.Message}"); }
+		try { _soundBankExporter.Export(); } catch (Exception ex) { Logger.Log($"SoundBankExporter failed: {ex.Message}"); }
+		try { _fontBankExporter.Export(); } catch (Exception ex) { Logger.Log($"FontBankExporter failed: {ex.Message}"); }
+		try { _effectBankExporter.Export(); } catch (Exception ex) { Logger.Log($"EffectBankExporter failed: {ex.Message}"); }
+		try { _frameExporter.Export(); } catch (Exception ex) { Logger.Log($"FrameExporter failed: {ex.Message}"); }
+		try { _iconExporter.Export(); } catch (Exception ex) { Logger.Log($"IconExporter failed: {ex.Message}"); }
 	}
 }
