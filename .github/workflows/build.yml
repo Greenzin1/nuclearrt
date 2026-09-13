@@ -189,6 +189,18 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
+          # Add operator int() for generated code that assigns CValue to int
+          if 'operator int()' not in c:
+              c = c.replace(
+                  '    CValue& operator+(float other)',
+                  '    operator int() const { return GetIntValue(); }\n    CValue& operator+(float other)')
+              print('Fixed CValue.h - added operator int()')
+          # Add operator== and operator!= for CValue vs CValue comparisons
+          if 'operator==(const CValue' not in c:
+              c = c.replace(
+                  '    CValue& operator+(float other)',
+                  '    bool operator==(const CValue& other) const { return GetIntValue() == other.GetIntValue(); }\n    bool operator!=(const CValue& other) const { return GetIntValue() != other.GetIntValue(); }\n    bool operator>(const CValue& other) const { return GetIntValue() > other.GetIntValue(); }\n    bool operator<(const CValue& other) const { return GetIntValue() < other.GetIntValue(); }\n    bool operator>=(const CValue& other) const { return GetIntValue() >= other.GetIntValue(); }\n    bool operator<=(const CValue& other) const { return GetIntValue() <= other.GetIntValue(); }\n    CValue& operator+(float other)')
+              print('Fixed CValue.h - added CValue comparison operators')
           with open(cv, 'w') as f: f.write(c)
           print('Fixed CValue.h - added float overloads')
 
@@ -221,6 +233,8 @@ jobs:
               c = c.replace('std::ceil(', 'MathHelper::ceil(')
               c = c.replace('std::floor(', 'MathHelper::floor(')
               c = c.replace('std::round(', 'MathHelper::round(')
+              # Fix Group__ (empty group index) -> Group_0_
+              c = re.sub(r'\bGroup__\b', 'Group_0_', c)
               with open(f, 'w') as fh: fh.write(c)
               print(f'Fixed {f}')
           for f in glob.glob('runtime/include/ObjectFactory.h'):
