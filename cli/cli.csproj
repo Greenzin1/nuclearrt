@@ -9,6 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.0.10" />
+    <PackageReference Include="DotNetZip.Original" Version="2025.1.26" />
+    <PackageReference Include="Joveler.Compression.ZLib" Version="4.1.0" />
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.2.16" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta1" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.5" />
+    <PackageReference Include="System.Resources.Extensions" Version="6.0.0" />
     <ProjectReference Include="CTFAK-Nuclear/Core/CTFAK.Core/CTFAK.Core.csproj" />
   </ItemGroup>
 
