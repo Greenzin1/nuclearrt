@@ -123,9 +123,18 @@ class CliExporter
             }
         }
 
-        Console.WriteLine("Exporting with NuclearRT runtime...");
-        Exporter exporter = new Exporter(ccnReader, mfaReader, runtimeBaseDir, outputDir);
-        exporter.Export();
+        bool hasMfa = mfaReader.mfa != null && mfaReader.mfa.Frames != null && mfaReader.mfa.Frames.Count > 0;
+
+        if (hasMfa)
+        {
+            Console.WriteLine("Exporting with NuclearRT runtime...");
+            Exporter exporter = new Exporter(ccnReader, mfaReader, runtimeBaseDir, outputDir);
+            exporter.Export();
+        }
+        else
+        {
+            Console.WriteLine("No MFA frame data - skipping exporter, going straight to pak.");
+        }
 
         Console.WriteLine("Extracting resources to pak...");
         PakBuilder pakBuilder = new PakBuilder();
