@@ -173,18 +173,9 @@ jobs:
           import glob, re, os
 
           def remove_error_msgs(c):
-              # The exporter embeds error messages as code with unbalanced parens.
-              # Comment out entire lines containing these errors - they're broken expressions.
-              lines = c.split('\n')
-              result = []
-              for line in lines:
-                  if 'Extension exporter not found for ObjectInfo' in line:
-                      result.append('// ' + line.strip())
-                  elif re.search(r'[A-Z]\w+ exporter not found', line):
-                      result.append('// ' + line.strip())
-                  else:
-                      result.append(line)
-              return '\n'.join(result)
+              # Fallback: in case any error messages still leak through
+              c = re.sub(r'[A-Z]\w+ exporter not found for ObjectInfo \d+ \([^)]*\)\.', 'CValue(0)', c)
+              return c
 
           # Fix CValue.h - add float overloads to fix CValue + float ambiguity
           cv = 'runtime/include/CValue.h'
