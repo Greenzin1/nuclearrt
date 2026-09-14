@@ -249,7 +249,7 @@ jobs:
               # Fix int var = CValue(0) -> int var = 0
               c = re.sub(r'(\bint\s+\w+\s*=\s*)CValue\(0\)', r'\g<1>0', c)
               with open(f, 'w') as fh: fh.write(c)
-              print(f'Fixed {f}')
+              print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
               with open(f) as fh: c = fh.read()
               c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
@@ -260,7 +260,7 @@ jobs:
               c = c.replace('std::round(', 'MathHelper::round(')
               c = c.replace('std::trunc(', 'MathHelper::trunc(')
               with open(f, 'w') as fh: fh.write(c)
-              print(f'Fixed {f}')
+              print('Fixed ' + f)
 
           # Fix undeclared selectors in Generated*.h files
           # For each .h, find selectors used in corresponding .cpp that aren't declared
@@ -280,11 +280,11 @@ jobs:
               declared_in_file = set(re.findall(r'ObjectSelector\s+(Group_\d+_Sprite_\d+_selector)', h))
               missing = used - already_declared
               if missing:
-                  decls = ''.join(f'ObjectSelector {s};\n' for s in sorted(missing))
-                  h = h.replace('#pragma once', f'#pragma once\n{decls}')
+                  decls = ''.join('ObjectSelector ' + s + ';\n' for s in sorted(missing))
+                  h = h.replace('#pragma once', '#pragma once\n' + decls)
                   with open(hfile, 'w') as fh: fh.write(h)
                   already_declared.update(missing)
-                  print(f'Added {len(missing)} missing selector declarations to {hfile}')
+                  print('Added ' + str(len(missing)) + ' missing selector declarations to ' + hfile)
 
           "
 
