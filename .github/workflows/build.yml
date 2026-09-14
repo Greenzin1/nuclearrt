@@ -197,19 +197,19 @@ jobs:
           print('Fixed CValue.h - added float overloads + explicit operator bool')
 
           # Add non-member bitwise operators to CValue.h for generated code
-          bitops = "\n// Non-member bitwise operators for generated code compatibility\n"
-          bitops += "inline CValue operator&(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() & b.GetIntValue()); }\n"
-          bitops += "inline CValue operator&(const CValue& a, int b) { return CValue(a.GetIntValue() & b); }\n"
-          bitops += "inline CValue operator&(int a, const CValue& b) { return CValue(a & b.GetIntValue()); }\n"
-          bitops += "inline CValue operator&(const CValue& a, bool b) { return CValue(a.GetIntValue() & (b ? 1 : 0)); }\n"
-          bitops += "inline CValue operator|(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() | b.GetIntValue()); }\n"
-          bitops += "inline CValue operator|(const CValue& a, int b) { return CValue(a.GetIntValue() | b); }\n"
-          bitops += "inline CValue operator|(int a, const CValue& b) { return CValue(a | b.GetIntValue()); }\n"
-          bitops += "inline CValue operator^(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() ^ b.GetIntValue()); }\n"
-          bitops += "inline CValue operator^(const CValue& a, int b) { return CValue(a.GetIntValue() ^ b); }\n"
-          bitops += "inline CValue operator^(int a, const CValue& b) { return CValue(a ^ b.GetIntValue()); }\n"
-          bitops += "inline CValue operator~(const CValue& a) { return CValue(~a.GetIntValue()); }\n"
-          bitops += "inline bool operator!(const CValue& a) { return !a.GetIntValue(); }\n"
+          bitops = '\n// Non-member bitwise operators for generated code compatibility\n'
+          bitops += 'inline CValue operator&(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() & b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator&(const CValue& a, int b) { return CValue(a.GetIntValue() & b); }\n'
+          bitops += 'inline CValue operator&(int a, const CValue& b) { return CValue(a & b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator&(const CValue& a, bool b) { return CValue(a.GetIntValue() & (b ? 1 : 0)); }\n'
+          bitops += 'inline CValue operator|(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() | b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator|(const CValue& a, int b) { return CValue(a.GetIntValue() | b); }\n'
+          bitops += 'inline CValue operator|(int a, const CValue& b) { return CValue(a | b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator^(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() ^ b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator^(const CValue& a, int b) { return CValue(a.GetIntValue() ^ b); }\n'
+          bitops += 'inline CValue operator^(int a, const CValue& b) { return CValue(a ^ b.GetIntValue()); }\n'
+          bitops += 'inline CValue operator~(const CValue& a) { return CValue(~a.GetIntValue()); }\n'
+          bitops += 'inline bool operator!(const CValue& a) { return !a.GetIntValue(); }\n'
           if 'operator&(const CValue' not in c:
               with open(cv, 'a') as f: f.write(bitops)
               print('Fixed CValue.h - added bitwise operators')
