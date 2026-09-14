@@ -332,7 +332,7 @@ jobs:
 
           already_declared = set()
           for hfile in glob.glob('runtime/include/Generated*.h'):
-              with open(hfile) as fh: h = h.read()
+              with open(hfile) as fh: h = fh.read()
               already_declared.update(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(\w+_selector)', h))
 
           missing_all = all_used_selectors - already_declared
