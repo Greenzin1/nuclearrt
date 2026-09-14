@@ -189,18 +189,6 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
-          # Make CValue(T) template explicit to resolve ternary ambiguity with operator int()
-          if 'explicit CValue(T value)' not in c:
-              c = c.replace(
-                  '    CValue(T value)',
-                  '    explicit CValue(T value)')
-              print('Fixed CValue.h - made template constructor explicit')
-          # Add operator int() for implicit conversion in function args
-          if 'operator int()' not in c:
-              c = c.replace(
-                  'private:',
-                  '    operator int() const { return GetIntValue(); }\n\nprivate:')
-              print('Fixed CValue.h - added operator int()')
           if 'operator&(const CValue' not in c:
               c = c.replace(
                   'private:',
@@ -239,11 +227,19 @@ jobs:
               print('Fixed CValue.h - added non-member operators')
 
           # Fix AudioBackend.h - return 0 in CValue-returning functions -> return CValue(0)
+          # And add CValue overloads for functions expecting int/float args
           ab = 'runtime/include/AudioBackend.h'
           with open(ab) as f: a = f.read()
           a = a.replace('{return 0;}', '{return CValue(0);}')
+          cvalue_overloads = '\n// CValue overloads for generated code compatibility\n'
+          cvalue_overloads += 'void SetSampleFreq(CValue freq, CValue id, CValue channel) { SetSampleFreq(freq.GetIntValue(), id.GetIntValue(), channel.GetIntValue() != 0); }\n'
+          cvalue_overloads += 'void SetSamplePos(CValue pos, CValue id, CValue channel) { SetSamplePos(pos.GetIntValue(), id.GetIntValue(), channel.GetIntValue() != 0); }\n'
+          cvalue_overloads += 'void SetSampleVolume(CValue volume, CValue id, CValue channel) { SetSampleVolume((float)volume.GetDoubleValue(), id.GetIntValue(), channel.GetIntValue() != 0); }\n'
+          cvalue_overloads += 'void SetSamplePan(CValue pan, CValue id, CValue channel) { SetSamplePan((float)pan.GetDoubleValue(), id.GetIntValue(), channel.GetIntValue() != 0); }\n'
+          if 'CValue overloads' not in a:
+              a = a.replace('};', cvalue_overloads + '};')
           with open(ab, 'w') as f: f.write(a)
-          print('Fixed AudioBackend.h - CValue(0) returns')
+          print('Fixed AudioBackend.h - CValue overloads + returns')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
