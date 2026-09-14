@@ -194,12 +194,11 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
-          if 'operator&(const CValue' not in c:
-              c = c.replace(
-                  'private:',
-                  '    explicit operator bool() const { return GetIntValue() != 0; }\n\nprivate:')
           with open(cv, 'w') as f: f.write(c)
-          print('Fixed CValue.h - added float overloads + operator int')
+          print('Fixed CValue.h - added float overloads')
+          if 'operator&(const CValue' not in c:
+              with open(cv, 'a') as f: f.write(bitops)
+              print('Fixed CValue.h - added non-member operators')
 
           # Add non-member operators to CValue.h for generated code
           # CValue has member operator+/-/*/%(CValue&) etc. that mutate *this and return CValue&
@@ -307,10 +306,10 @@ jobs:
               c = '\n'.join(fixed_lines)
               # Fix goto labels that were never declared
               # Find all goto event_NNN_end references
-              missing_labels = set(re.findall(r'goto (event_\d+_end)', c))
-              declared_labels = set(re.findall(r'(event_\d+_end):', c))
+              missing_labels = set(re.findall(r'goto\s+(event_\d+_end)', c))
+              declared_labels = set(re.findall(r'(event_\d+_end)\s*:', c))
               for label in missing_labels - declared_labels:
-                  c = c.replace('goto ' + label + ';', '/* goto ' + label + ' */')
+                  c = re.sub(r'goto\s+' + re.escape(label) + r'\s*;', '/* goto ' + label + ' */', c)
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
@@ -328,15 +327,16 @@ jobs:
           # Fix undeclared selectors in Generated*.h files
           # For each .h, find selectors used in corresponding .cpp that aren't declared
           # Use extern declarations in .h files, actual definitions in ObjectFactory.h
+          # Match ANY *_selector pattern, not just Group_N_Sprite_N_selector
           all_used_selectors = set()
           for cppf in glob.glob('runtime/source/Generated*.cpp'):
               with open(cppf) as fh: cpp = fh.read()
-              all_used_selectors.update(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
+              all_used_selectors.update(re.findall(r'(\w+_selector)', cpp))
 
           already_declared = set()
           for hfile in glob.glob('runtime/include/Generated*.h'):
-              with open(hfile) as fh: h = fh.read()
-              already_declared.update(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(Group_\d+_Sprite_\d+_selector)', h))
+              with open(hfile) as fh: h = h.read()
+              already_declared.update(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(\w+_selector)', h))
 
           missing_all = all_used_selectors - already_declared
 
@@ -346,9 +346,9 @@ jobs:
                   hfile = 'runtime/include/' + basename + '.h'
                   if not os.path.exists(hfile): continue
                   with open(cppf) as fh: cpp = fh.read()
-                  used = set(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
-                  with open(hfile) as fh: h = fh.read()
-                  locally_declared = set(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(Group_\d+_Sprite_\d+_selector)', h))
+                  used = set(re.findall(r'(\w+_selector)', cpp))
+                  with open(hfile) as fh: h = h.read()
+                  locally_declared = set(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(\w+_selector)', h))
                   locally_missing = used - locally_declared
                   if locally_missing:
                       decls = 'class ObjectSelector;\n' + ''.join('extern ObjectSelector ' + s + ';\n' for s in sorted(locally_missing))
