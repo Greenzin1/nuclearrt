@@ -194,11 +194,7 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
-          with open(cv, 'w') as f: f.write(c)
           print('Fixed CValue.h - added float overloads')
-          if 'operator&(const CValue' not in c:
-              with open(cv, 'a') as f: f.write(bitops)
-              print('Fixed CValue.h - added non-member operators')
 
           # Add non-member operators to CValue.h for generated code
           # CValue has member operator+/-/*/%(CValue&) etc. that mutate *this and return CValue&
@@ -226,6 +222,7 @@ jobs:
           bitops += 'inline CValue operator^(int a, const CValue& b) { return CValue(a ^ b.GetIntValue()); }\n'
           bitops += 'inline CValue operator~(const CValue& a) { return CValue(~a.GetIntValue()); }\n'
           bitops += 'inline bool operator!(const CValue& a) { return !a.GetIntValue(); }\n'
+          with open(cv, 'w') as f: f.write(c)
           if 'operator&(const CValue' not in c:
               with open(cv, 'a') as f: f.write(bitops)
               print('Fixed CValue.h - added non-member operators')
