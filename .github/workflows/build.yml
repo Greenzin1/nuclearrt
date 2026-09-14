@@ -265,6 +265,8 @@ jobs:
               c = re.sub(r'(?:CValue\([^)]*\)){2,}\)?', 'CValue(0)', c)
               # Any remaining )CValue( -> , CValue(
               c = c.replace(')CValue(', ', CValue(')
+              # Fix CValue(0) passed as int/double argument - replace with plain 0
+              c = c.replace('CValue(0)', '0')
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
