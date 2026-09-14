@@ -260,8 +260,12 @@ jobs:
               c = re.sub(r'Group__(?=[A-Z])', 'Group_0_', c)
               # Fix int var = CValue(0) -> int var = 0
               c = re.sub(r'(\bint\s+\w+\s*=\s*)CValue\(0\)', r'\g<1>0', c)
-              # Fix broken CValue(...)CValue(...) concatenation - insert * between
-              c = c.replace(')CValue(', ') * CValue(')
+              # Fix broken CValue(...)CValue(...) concatenation from failed expression conversion
+              # These are chains like CValue(0)CValue("string")CValue(0) from multiple failed expressions
+              # Simplify to just CValue(0) before further fixes
+              c = re.sub(r'CValue\([^)]*\)CValue\([^)]*\)', 'CValue(0)', c)
+              # Any remaining )CValue( patterns get comma separation
+              c = c.replace(')CValue(', ', CValue(')
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
