@@ -301,6 +301,12 @@ jobs:
               c = re.sub(r'(?:CValue\([^)]*\)){2,}\)?', 'CValue(0)', c)
               # Any remaining )CValue( -> , CValue(
               c = c.replace(')CValue(', ', CValue(')
+              # Fix goto labels that were never declared
+              # Find all goto event_NNN_end references
+              missing_labels = set(re.findall(r'goto (event_\d+_end)', c))
+              declared_labels = set(re.findall(r'(event_\d+_end):', c))
+              for label in missing_labels - declared_labels:
+                  c = c + '\n' + label + ': ;\n'
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
