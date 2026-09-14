@@ -287,6 +287,24 @@ jobs:
               c = re.sub(r'(?:CValue\([^)]*\)){2,}\)?', 'CValue(0)', c)
               # Any remaining )CValue( -> , CValue(
               c = c.replace(')CValue(', ', CValue(')
+              # Fix unbalanced parens on single lines (from error msg removal leaving extra ))
+              fixed_lines = []
+              for line in c.split('\n'):
+                  stripped = line.rstrip()
+                  if stripped.endswith(';') and not stripped.strip().startswith('//'):
+                      opens = stripped.count('(')
+                      closes = stripped.count(')')
+                      excess = closes - opens
+                      if excess > 0:
+                          # Remove excess ) from end of statement (before ;)
+                          body = stripped[:-1]
+                          for _ in range(excess):
+                              idx = body.rfind(')')
+                              if idx >= 0:
+                                  body = body[:idx] + body[idx+1:]
+                          stripped = body + ';'
+                  fixed_lines.append(stripped)
+              c = '\n'.join(fixed_lines)
               # Fix goto labels that were never declared
               # Find all goto event_NNN_end references
               missing_labels = set(re.findall(r'goto (event_\d+_end)', c))
