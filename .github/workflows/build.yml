@@ -267,6 +267,9 @@ jobs:
               c = re.sub(r'/\* Expression not found:.*?\*/', 'CValue(0)', c)
               c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
               c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
+              # Fix error messages leaked into generated code by ExpressionConverter
+              c = re.sub(r'Extension exporter not found for ObjectInfo \d+ \([^)]*\)\.', 'CValue(0)', c)
+              c = re.sub(r'[A-Z]\w+ exporter not found[^;)]*\.', 'CValue(0)', c)
               c = c.replace('std::ceil(', 'MathHelper::ceil(')
               c = c.replace('std::floor(', 'MathHelper::floor(')
               c = c.replace('std::round(', 'MathHelper::round(')
