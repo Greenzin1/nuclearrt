@@ -172,6 +172,25 @@ jobs:
           python3 -c "
           import glob, re, os
 
+          def remove_error_msgs(c):
+              while True:
+                  m = re.search(r'Extension exporter not found for ObjectInfo \d+ \([^)]*\)\.', c)
+                  if not m: break
+                  start = m.start()
+                  end = m.end()
+                  depth = 0
+                  i = end
+                  while i < len(c):
+                      if c[i] == '(': depth += 1
+                      elif c[i] == ')':
+                          if depth == 0: end = i + 1; break
+                          depth -= 1
+                      elif c[i] == ';' and depth == 0: end = i; break
+                      i += 1
+                  c = c[:start] + 'CValue(0)' + c[end:]
+              c = re.sub(r'[A-Z]\w+ exporter not found[^;]*', 'CValue(0)', c)
+              return c
+
           # Fix CValue.h - add float overloads to fix CValue + float ambiguity
           cv = 'runtime/include/CValue.h'
           with open(cv) as f: c = f.read()
@@ -268,8 +287,7 @@ jobs:
               c = re.sub(r'/\* Condition not found:.*?\*/', 'true', c)
               c = re.sub(r'/\* Action not found:.*?\*/', '// action not found', c)
               # Fix error messages leaked into generated code by ExpressionConverter
-              c = re.sub(r'Extension exporter not found for ObjectInfo \d+ \([^)]*\)\.', 'CValue(0)', c)
-              c = re.sub(r'[A-Z]\w+ exporter not found[^;)]*\.', 'CValue(0)', c)
+              c = remove_error_msgs(c)
               c = c.replace('std::ceil(', 'MathHelper::ceil(')
               c = c.replace('std::floor(', 'MathHelper::floor(')
               c = c.replace('std::round(', 'MathHelper::round(')
