@@ -344,7 +344,7 @@ jobs:
                   if not os.path.exists(hfile): continue
                   with open(cppf) as fh: cpp = fh.read()
                   used = set(re.findall(r'(\w+_selector)', cpp))
-                   with open(hfile) as fh: h = fh.read()
+                  with open(hfile) as fh: h = fh.read()
                   locally_declared = set(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(\w+_selector)', h))
                   locally_missing = used - locally_declared
                   if locally_missing:
