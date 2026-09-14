@@ -173,10 +173,21 @@ jobs:
           import glob, re, os
 
           def remove_error_msgs(c):
-              # Simple replacement: just swap error message text with CValue(0)
-              # Don't try to consume trailing parens - that breaks outer paren balance
               c = re.sub(r'Extension exporter not found for ObjectInfo \d+ \([^)]*\)\.', 'CValue(0)', c)
               c = re.sub(r'[A-Z]\w+ exporter not found for ObjectInfo \d+ \([^)]*\)\.', 'CValue(0)', c)
+              # Clean up leftover args: CValue(0) (39, 0, ...) -> CValue(0)
+              while True:
+                  m = re.search(r'CValue\(0\) \(', c)
+                  if not m: break
+                  start = m.start()
+                  paren_start = m.end() - 1
+                  depth = 1
+                  i = paren_start + 1
+                  while i < len(c) and depth > 0:
+                      if c[i] == '(': depth += 1
+                      elif c[i] == ')': depth -= 1
+                      i += 1
+                  c = c[:start] + 'CValue(0)' + c[i:]
               return c
 
           # Fix CValue.h - add float overloads to fix CValue + float ambiguity
