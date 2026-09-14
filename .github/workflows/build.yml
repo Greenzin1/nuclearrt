@@ -196,23 +196,24 @@ jobs:
           with open(cv, 'w') as f: f.write(c)
           print('Fixed CValue.h - added float overloads + explicit operator bool')
 
-          # Add non-member bitwise operators to CValue.h for generated code
+          # Add non-member operators to CValue.h for generated code
+          # CValue has member operator+/-/*/%(CValue&) etc. that mutate *this and return CValue&
+          # Non-member versions needed for const CValue& LHS (from std::min/max etc.)
           bitops = '\n// Non-member operators for generated code compatibility\n'
-          bitops += 'inline CValue operator+(const CValue& a, const CValue& b) { CValue r(a); r += b; return r; }\n'
-          bitops += 'inline CValue operator-(const CValue& a, const CValue& b) { CValue r(a); r -= b; return r; }\n'
-          bitops += 'inline CValue operator*(const CValue& a, const CValue& b) { CValue r(a); r *= b; return r; }\n'
-          bitops += 'inline CValue operator/(const CValue& a, const CValue& b) { CValue r(a); r /= b; return r; }\n'
-          bitops += 'inline CValue operator%(const CValue& a, const CValue& b) { CValue r(a); r %= b; return r; }\n'
-          bitops += 'inline CValue operator+(const CValue& a, int b) { CValue r(a); r += b; return r; }\n'
-          bitops += 'inline CValue operator-(const CValue& a, int b) { CValue r(a); r -= b; return r; }\n'
-          bitops += 'inline CValue operator*(const CValue& a, int b) { CValue r(a); r *= b; return r; }\n'
-          bitops += 'inline CValue operator+(const CValue& a, double b) { CValue r(a); r += b; return r; }\n'
-          bitops += 'inline CValue operator-(const CValue& a, double b) { CValue r(a); r -= b; return r; }\n'
-          bitops += 'inline CValue operator*(const CValue& a, double b) { CValue r(a); r *= b; return r; }\n'
+          bitops += 'inline CValue operator+(const CValue& a, const CValue& b) { CValue r(a); r = r + b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, const CValue& b) { CValue r(a); r = r - b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, const CValue& b) { CValue r(a); r = r * b; return r; }\n'
+          bitops += 'inline CValue operator/(const CValue& a, const CValue& b) { CValue r(a); r = r / b; return r; }\n'
+          bitops += 'inline CValue operator%(const CValue& a, const CValue& b) { CValue r(a); r = r % b; return r; }\n'
+          bitops += 'inline CValue operator+(const CValue& a, int b) { CValue r(a); r = r + b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, int b) { CValue r(a); r = r - b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, int b) { CValue r(a); r = r * b; return r; }\n'
+          bitops += 'inline CValue operator+(const CValue& a, double b) { CValue r(a); r = r + b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, double b) { CValue r(a); r = r - b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, double b) { CValue r(a); r = r * b; return r; }\n'
           bitops += 'inline CValue operator&(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() & b.GetIntValue()); }\n'
           bitops += 'inline CValue operator&(const CValue& a, int b) { return CValue(a.GetIntValue() & b); }\n'
           bitops += 'inline CValue operator&(int a, const CValue& b) { return CValue(a & b.GetIntValue()); }\n'
-          bitops += 'inline CValue operator&(const CValue& a, bool b) { return CValue(a.GetIntValue() & (b ? 1 : 0)); }\n'
           bitops += 'inline CValue operator|(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() | b.GetIntValue()); }\n'
           bitops += 'inline CValue operator|(const CValue& a, int b) { return CValue(a.GetIntValue() | b); }\n'
           bitops += 'inline CValue operator|(int a, const CValue& b) { return CValue(a | b.GetIntValue()); }\n'
@@ -223,7 +224,7 @@ jobs:
           bitops += 'inline bool operator!(const CValue& a) { return !a.GetIntValue(); }\n'
           if 'operator&(const CValue' not in c:
               with open(cv, 'a') as f: f.write(bitops)
-              print('Fixed CValue.h - added bitwise operators')
+              print('Fixed CValue.h - added non-member operators')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
@@ -301,7 +302,7 @@ jobs:
                   locally_declared = set(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(Group_\d+_Sprite_\d+_selector)', h))
                   locally_missing = used - locally_declared
                   if locally_missing:
-                      decls = ''.join('extern ObjectSelector ' + s + ';\n' for s in sorted(locally_missing))
+                      decls = '#include "ObjectSelector.h"\n' + ''.join('extern ObjectSelector ' + s + ';\n' for s in sorted(locally_missing))
                       h = h.replace('#pragma once', '#pragma once\n' + decls)
                       with open(hfile, 'w') as fh: fh.write(h)
                       print('Added ' + str(len(locally_missing)) + ' extern selector declarations to ' + hfile)
@@ -311,8 +312,8 @@ jobs:
               if os.path.exists(ofh):
                   with open(ofh) as fh: of = fh.read()
                   defs = ''.join('ObjectSelector ' + s + ';\n' for s in sorted(missing_all))
-                  if 'ObjectSelector' not in of:
-                      of = '#pragma once\n' + defs + of.replace('#pragma once\n', '')
+                  if '#include "ObjectSelector.h"' not in of:
+                      of = '#pragma once\n#include "ObjectSelector.h"\n' + defs + of.replace('#pragma once\n', '')
                   else:
                       of = of + '\n' + defs
                   with open(ofh, 'w') as fh: fh.write(of)
