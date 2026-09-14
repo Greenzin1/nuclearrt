@@ -197,7 +197,18 @@ jobs:
           print('Fixed CValue.h - added float overloads + explicit operator bool')
 
           # Add non-member bitwise operators to CValue.h for generated code
-          bitops = '\n// Non-member bitwise operators for generated code compatibility\n'
+          bitops = '\n// Non-member operators for generated code compatibility\n'
+          bitops += 'inline CValue operator+(const CValue& a, const CValue& b) { CValue r(a); r += b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, const CValue& b) { CValue r(a); r -= b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, const CValue& b) { CValue r(a); r *= b; return r; }\n'
+          bitops += 'inline CValue operator/(const CValue& a, const CValue& b) { CValue r(a); r /= b; return r; }\n'
+          bitops += 'inline CValue operator%(const CValue& a, const CValue& b) { CValue r(a); r %= b; return r; }\n'
+          bitops += 'inline CValue operator+(const CValue& a, int b) { CValue r(a); r += b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, int b) { CValue r(a); r -= b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, int b) { CValue r(a); r *= b; return r; }\n'
+          bitops += 'inline CValue operator+(const CValue& a, double b) { CValue r(a); r += b; return r; }\n'
+          bitops += 'inline CValue operator-(const CValue& a, double b) { CValue r(a); r -= b; return r; }\n'
+          bitops += 'inline CValue operator*(const CValue& a, double b) { CValue r(a); r *= b; return r; }\n'
           bitops += 'inline CValue operator&(const CValue& a, const CValue& b) { return CValue(a.GetIntValue() & b.GetIntValue()); }\n'
           bitops += 'inline CValue operator&(const CValue& a, int b) { return CValue(a.GetIntValue() & b); }\n'
           bitops += 'inline CValue operator&(int a, const CValue& b) { return CValue(a & b.GetIntValue()); }\n'
@@ -248,6 +259,8 @@ jobs:
               c = re.sub(r'Group__(?=[A-Z])', 'Group_0_', c)
               # Fix int var = CValue(0) -> int var = 0
               c = re.sub(r'(\bint\s+\w+\s*=\s*)CValue\(0\)', r'\g<1>0', c)
+              # Fix broken CValue(...)CValue(...) concatenation - insert * between
+              c = c.replace(')CValue(', ') * CValue(')
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
@@ -264,27 +277,46 @@ jobs:
 
           # Fix undeclared selectors in Generated*.h files
           # For each .h, find selectors used in corresponding .cpp that aren't declared
-          # Track globally to avoid duplicate declarations across files
+          # Use extern declarations in .h files, actual definitions in ObjectFactory.h
+          all_used_selectors = set()
+          for cppf in glob.glob('runtime/source/Generated*.cpp'):
+              with open(cppf) as fh: cpp = fh.read()
+              all_used_selectors.update(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
+
           already_declared = set()
           for hfile in glob.glob('runtime/include/Generated*.h'):
               with open(hfile) as fh: h = fh.read()
-              already_declared.update(re.findall(r'ObjectSelector\s+(Group_\d+_Sprite_\d+_selector)', h))
+              already_declared.update(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(Group_\d+_Sprite_\d+_selector)', h))
 
-          for cppf in glob.glob('runtime/source/Generated*.cpp'):
-              basename = os.path.basename(re.sub(r'\.cpp$', '', cppf))
-              hfile = 'runtime/include/' + basename + '.h'
-              if not os.path.exists(hfile): continue
-              with open(cppf) as fh: cpp = fh.read()
-              used = set(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
-              with open(hfile) as fh: h = fh.read()
-              declared_in_file = set(re.findall(r'ObjectSelector\s+(Group_\d+_Sprite_\d+_selector)', h))
-              missing = used - already_declared
-              if missing:
-                  decls = ''.join('ObjectSelector ' + s + ';\n' for s in sorted(missing))
-                  h = h.replace('#pragma once', '#pragma once\n' + decls)
-                  with open(hfile, 'w') as fh: fh.write(h)
-                  already_declared.update(missing)
-                  print('Added ' + str(len(missing)) + ' missing selector declarations to ' + hfile)
+          missing_all = all_used_selectors - already_declared
+
+          if missing_all:
+              for cppf in glob.glob('runtime/source/Generated*.cpp'):
+                  basename = os.path.basename(re.sub(r'\.cpp$', '', cppf))
+                  hfile = 'runtime/include/' + basename + '.h'
+                  if not os.path.exists(hfile): continue
+                  with open(cppf) as fh: cpp = fh.read()
+                  used = set(re.findall(r'(Group_\d+_Sprite_\d+_selector)', cpp))
+                  with open(hfile) as fh: h = fh.read()
+                  locally_declared = set(re.findall(r'(?:ObjectSelector|extern ObjectSelector)\s+(Group_\d+_Sprite_\d+_selector)', h))
+                  locally_missing = used - locally_declared
+                  if locally_missing:
+                      decls = ''.join('extern ObjectSelector ' + s + ';\n' for s in sorted(locally_missing))
+                      h = h.replace('#pragma once', '#pragma once\n' + decls)
+                      with open(hfile, 'w') as fh: fh.write(h)
+                      print('Added ' + str(len(locally_missing)) + ' extern selector declarations to ' + hfile)
+
+              # Add actual definitions to ObjectFactory.h
+              ofh = 'runtime/include/ObjectFactory.h'
+              if os.path.exists(ofh):
+                  with open(ofh) as fh: of = fh.read()
+                  defs = ''.join('ObjectSelector ' + s + ';\n' for s in sorted(missing_all))
+                  if 'ObjectSelector' not in of:
+                      of = '#pragma once\n' + defs + of.replace('#pragma once\n', '')
+                  else:
+                      of = of + '\n' + defs
+                  with open(ofh, 'w') as fh: fh.write(of)
+                  print('Added ' + str(len(missing_all)) + ' selector definitions to ObjectFactory.h')
 
           "
 
