@@ -189,12 +189,24 @@ jobs:
               c = c.replace(
                   '    CValue& operator-(double other)',
                   '    CValue& operator-(float other) { return *this - (double)other; }\n    CValue& operator-(double other)')
+          # Make CValue(T) template explicit to resolve ternary ambiguity with operator int()
+          if 'explicit CValue(T value)' not in c:
+              c = c.replace(
+                  '    CValue(T value)',
+                  '    explicit CValue(T value)')
+              print('Fixed CValue.h - made template constructor explicit')
+          # Add operator int() for implicit conversion in function args
+          if 'operator int()' not in c:
+              c = c.replace(
+                  'private:',
+                  '    operator int() const { return GetIntValue(); }\n\nprivate:')
+              print('Fixed CValue.h - added operator int()')
           if 'operator&(const CValue' not in c:
               c = c.replace(
                   'private:',
                   '    explicit operator bool() const { return GetIntValue() != 0; }\n\nprivate:')
           with open(cv, 'w') as f: f.write(c)
-          print('Fixed CValue.h - added float overloads + explicit operator bool')
+          print('Fixed CValue.h - added float overloads + operator int')
 
           # Add non-member operators to CValue.h for generated code
           # CValue has member operator+/-/*/%(CValue&) etc. that mutate *this and return CValue&
@@ -225,6 +237,13 @@ jobs:
           if 'operator&(const CValue' not in c:
               with open(cv, 'a') as f: f.write(bitops)
               print('Fixed CValue.h - added non-member operators')
+
+          # Fix AudioBackend.h - return 0 in CValue-returning functions -> return CValue(0)
+          ab = 'runtime/include/AudioBackend.h'
+          with open(ab) as f: a = f.read()
+          a = a.replace('{return 0;}', '{return CValue(0);}')
+          with open(ab, 'w') as f: f.write(a)
+          print('Fixed AudioBackend.h - CValue(0) returns')
 
           # Fix Animations.h - add CValue overload for SetCurrentSequenceIndex
           ah = 'runtime/include/Animations.h'
@@ -265,8 +284,6 @@ jobs:
               c = re.sub(r'(?:CValue\([^)]*\)){2,}\)?', 'CValue(0)', c)
               # Any remaining )CValue( -> , CValue(
               c = c.replace(')CValue(', ', CValue(')
-              # Fix CValue(0) passed as int/double argument - replace with plain 0
-              c = c.replace('CValue(0)', '0')
               with open(f, 'w') as fh: fh.write(c)
               print('Fixed ' + f)
           for f in glob.glob('runtime/include/ObjectFactory.h'):
